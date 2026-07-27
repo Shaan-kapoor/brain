@@ -5,13 +5,15 @@
   "description": "Interactive 3D model of my own brain, built from a 2023 MRI",
   "scripts": {
     "serve": "node scripts/serve.js",
-    "bench": "node scripts/bench.js http://localhost:8081 build/bench.json"
+    "bench": "node scripts/bench.js http://localhost:8081 build/bench.json",
+    "deploy": "wrangler pages deploy web --project-name=brain --commit-dirty=true"
   },
   "dependencies": {
     "three": "0.180.0",
     "three-mesh-bvh": "^0.9.13"
   },
   "devDependencies": {
-    "puppeteer": "^24.0.0"
+    "puppeteer": "^24.0.0",
+    "wrangler": "^4.114.0"
   }
 }

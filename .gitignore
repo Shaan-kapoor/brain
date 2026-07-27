@@ -25,6 +25,18 @@ build/
 web/models/head_identifiable.glb
 
 # ---------------------------------------------------------------------------
+# Secrets. A Cloudflare API token in git history is a token you have to
+# rotate, so block every shape it might arrive in.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+.dev.vars
+.wrangler/
+*.token
+wrangler.toml.local
+
+# ---------------------------------------------------------------------------
 # Tooling
 # ---------------------------------------------------------------------------
 __pycache__/
