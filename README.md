@@ -17,11 +17,34 @@ taken on 2023-10-07 (Philips Achieva 1.5 T), and a small web viewer for it.
 | Arteries | 3D TOF MRA, 0.34 × 0.34 × 0.75 mm | bright-blood threshold + shape filters |
 | Cerebellum | derived | brain minus all atlas-labelled cerebrum |
 | Ventricles, brainstem, thalamus, hippocampus, caudate, putamen, amygdala | SWI | Harvard-Oxford atlas warped on with ANTs SyN |
-| Head / scalp | SWI | outer silhouette, **defaced** |
+| Head / scalp / face | SWI + T1 sagittal | fused outer silhouette |
 
-Reported volumes land in normal adult ranges (brain 1173 cm³, ventricles
-11 cm³, thalamus 14 cm³, brainstem 28 cm³), which is the main sanity check
-that the segmentation is not wildly off.
+## What is measured and what is inferred
+
+Worth being precise about, because the parts are not equally trustworthy.
+
+**Measured from the scan.** The brain surface, the arteries and the head. Every
+vertex traces back to voxel intensities in the DICOM.
+
+**Positioned from the scan, shaped by an atlas.** Thalamus, hippocampus,
+caudate, putamen, amygdala, brainstem, ventricles. These are Harvard-Oxford
+atlas structures elastically warped onto this brain. Their *location* is
+inferred from this anatomy; their *shape* is substantially inherited from the
+template. The volumes quoted for them are therefore closer to "the atlas's
+structure after warping" than to an independent measurement of this subject.
+Treat them as well-placed labels, not as morphometry.
+
+**Derived by subtraction.** The cerebellum is whatever the atlas did not label
+inside the brain mask. At 105.7 cm³ against a normal 120–160 cm³ it is
+probably under-segmented.
+
+**Invented outright.** Every colour. And the smoothing: Taubin smoothing plus
+the pre-mesh blur genuinely move the surface, so this is a smoothed likeness,
+not a millimetre-exact cast.
+
+The measured volumes do land in normal adult ranges (brain 1173 cm³,
+ventricles 11 cm³, brainstem 28 cm³), which is the main sanity check that the
+segmentation is not wildly off.
 
 ## Running the viewer
 
@@ -71,17 +94,25 @@ only reason any of this works. The cortical detail here is therefore softer
 than a FreeSurfer reconstruction from a research MPRAGE — that is a limit of
 the source data, not of the pipeline.
 
+**No single series covers the whole head.** The SWI is 233 mm wide but its
+field of view cuts straight through the face; the sagittal T1 has the entire
+face profile and chin but is only 144 mm across. `03_head.py` unions the two
+silhouettes — same session, so they already share a coordinate frame. The
+profile is faithful; front-on, the face is squared off at the edges of the
+sagittal slab, and its 5.3 mm slice spacing shows as fine terracing across the
+cheeks. Neither is fixable without a scan that was acquired for the purpose.
+
 ## Privacy
 
 The source DICOM carries full patient identifiers (name, ID, date of birth,
 institution) and lives **outside this repository** on purpose, with `.gitignore`
 as a second line of defence.
 
-A 3D face reconstructed from MRI is biometric data — it can be matched against
-a photograph. `03_head.py` therefore builds two head masks, but only the
-defaced one is ever exported to a mesh: `web/models/head.glb` has the face
-flattened away, and that is the only head geometry in the repo. The
-identifiable mask stays in `build/` as a NIfTI and never becomes a `.glb`
-(`.gitignore` also blocks `head_identifiable.glb` in case you export one).
+The head model **includes the face**, which is a deliberate choice by the
+subject — who is also the author of this repo. Be aware of what that means: a
+3D face reconstructed from MRI is biometric data and can be matched against a
+photograph. If you fork this pipeline for anyone else's scan, run
+`python pipeline/03_head.py --deface`, which flattens everything in front of
+the frontal lobe and below eye level while leaving the skull vault intact.
 
 Not a diagnostic tool. Nothing here has been read by a radiologist.

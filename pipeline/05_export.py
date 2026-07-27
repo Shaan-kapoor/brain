@@ -38,8 +38,8 @@ PARTS = [
      "#e8d3c6", 260_000, 4,  "brain",  True),
     ("arteries_aligned_mask.nii.gz", "arteries", "Arteries (carotid + vertebral)",
      "#d64545", 160_000, 8,  "vessels", True),
-    ("head_mask.nii.gz",        "head",        "Head and scalp (defaced)",
-     "#d9b9a4",  90_000, 14, "surface", False),
+    ("head_mask.nii.gz",        "head",        "Head and scalp",
+     "#d9b9a4", 120_000, 14, "surface", False),
     ("deep_cerebellum_mask.nii.gz",  "cerebellum",  "Cerebellum",
      "#82c8eb",  60_000, 10, "deep", False),
     ("deep_ventricles_mask.nii.gz",  "ventricles",  "Lateral ventricles",
@@ -90,9 +90,17 @@ def main():
         if group in ("brain", "deep", "vessels", "surface"):
             qc.append((v, f, tuple(int(colour[i:i + 2], 16) for i in (1, 3, 5))))
 
+        # Bake ambient occlusion into vertex colours. This is what makes the
+        # sulci read as depth rather than as a faintly bumpy blob, and it
+        # costs the viewer nothing at runtime.
+        ao = C.bake_ao(v, mask, img.affine)
+        rgb = np.repeat((np.clip(ao, 0, 1) * 255).astype(np.uint8)[:, None], 3, axis=1)
+        colors = np.concatenate([rgb, np.full((len(rgb), 1), 255, np.uint8)], axis=1)
+
         gl = (v - pivot) @ RAS_TO_GL.T
         mesh = trimesh.Trimesh(vertices=gl, faces=f, process=False)
         mesh.fix_normals()
+        mesh.visual = trimesh.visual.ColorVisuals(mesh=mesh, vertex_colors=colors)
         out = MODELS / f"{name}.glb"
         # include_normals matters: a GLB without a NORMAL attribute renders as
         # a black silhouette under any lit material.

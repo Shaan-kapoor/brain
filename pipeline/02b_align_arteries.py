@@ -26,21 +26,7 @@ MRA = ROOT / "raw files" / "nifti brain mri" / "DICOM_s3DI_MC_20231007091140_902
 ISO = 0.6
 
 
-def union_grid(vols, orient_aff, iso):
-    """Grid in `orient_aff`'s orientation, at `iso` mm, covering every volume."""
-    R = orient_aff[:3, :3] / np.linalg.norm(orient_aff[:3, :3], axis=0)
-    pts = []
-    for shape, aff in vols:
-        idx = np.array(np.meshgrid(*[[0, s - 1] for s in shape], indexing="ij")).reshape(3, -1)
-        pts.append(aff[:3, :3] @ idx + aff[:3, 3:4])
-    world = np.hstack(pts)
-    proj = R.T @ world                       # coordinates along the unit axes
-    lo, hi = proj.min(1), proj.max(1)
-    shape = tuple(np.ceil((hi - lo) / iso).astype(int) + 1)
-    aff = np.eye(4)
-    aff[:3, :3] = R * iso
-    aff[:3, 3] = R @ lo
-    return aff, shape
+union_grid = C.union_grid
 
 
 def main():

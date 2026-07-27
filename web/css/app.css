@@ -20,9 +20,16 @@
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0;background:var(--bg);color:var(--ink);
+  margin:0;color:var(--ink);
   font-family:var(--sans);overflow:hidden;
   -webkit-font-smoothing:antialiased;
+  /* Stacked pools of light rather than a flat fill - the subject sits in a
+     lit volume instead of floating on a slab of grey. */
+  background:
+    radial-gradient(120% 80% at 50% 12%,rgba(78,132,160,.16),transparent 62%),
+    radial-gradient(70% 55% at 18% 92%,rgba(196,116,96,.10),transparent 70%),
+    radial-gradient(90% 70% at 82% 78%,rgba(76,201,224,.075),transparent 72%),
+    #07090b;
 }
 
 /* ---------- stage ---------- */
@@ -30,27 +37,34 @@ body{
 #view{display:block;width:100%;height:100%;touch-action:none}
 
 /* faint graticule, reads as an imaging viewport */
-#stage::after{
-  content:"";position:absolute;inset:0;pointer-events:none;
+#stage::before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
   background:
     linear-gradient(var(--line-2) 1px,transparent 1px) 0 0/100% 88px,
     linear-gradient(90deg,var(--line-2) 1px,transparent 1px) 0 0/88px 100%;
   mask-image:radial-gradient(ellipse at center,#000 20%,transparent 78%);
-  opacity:.5;
+  opacity:.42;
+}
+
+/* vignette, drawn over the render to seat it in the frame */
+#stage::after{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
+  background:radial-gradient(ellipse 78% 72% at 50% 48%,transparent 52%,rgba(0,0,0,.55) 100%);
 }
 
 /* ---------- panels ---------- */
 .panel{
   position:fixed;z-index:5;width:262px;
-  background:var(--panel);
-  backdrop-filter:blur(14px) saturate(1.2);
-  border:1px solid var(--line);border-radius:10px;
-  padding:14px 14px 16px;
+  background:linear-gradient(168deg,rgba(28,34,40,.80),rgba(13,16,19,.86));
+  backdrop-filter:blur(20px) saturate(1.35);
+  border:1px solid var(--line);border-radius:13px;
+  padding:15px 15px 17px;
   max-height:calc(100vh - 150px);overflow-y:auto;
   scrollbar-width:thin;scrollbar-color:var(--line) transparent;
+  box-shadow:0 18px 46px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07);
 }
-#layers{left:18px;top:132px}
-#inspect{right:18px;top:132px}
+#layers{left:20px;top:80px}
+#inspect{right:20px;top:80px}
 
 .panel h2{
   margin:0 0 10px;font:600 10px/1 var(--mono);
@@ -59,14 +73,12 @@ body{
 .panel h2:not(:first-child){margin-top:20px;padding-top:16px;border-top:1px solid var(--line-2)}
 
 /* ---------- title ---------- */
-#titlebar{position:fixed;left:18px;top:18px;z-index:5;pointer-events:none}
+#titlebar{position:fixed;left:20px;top:19px;z-index:5;pointer-events:none}
 #titlebar h1{
-  margin:0;font:600 26px/1 var(--sans);letter-spacing:.24em;color:var(--ink);
+  margin:0;font:200 25px/1 var(--sans);letter-spacing:.34em;
+  background:linear-gradient(96deg,#ffffff 8%,#a9c6d6 52%,#4cc9e0 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
 }
-#titlebar dl{margin:10px 0 0;display:flex;flex-direction:column;gap:3px}
-#titlebar dl div{display:flex;gap:8px;font:400 10.5px/1.5 var(--mono)}
-#titlebar dt{color:var(--ink-3);min-width:52px;letter-spacing:.08em}
-#titlebar dd{margin:0;color:var(--ink-2)}
 
 /* ---------- layer rows ---------- */
 .lgroup{margin-bottom:14px}
@@ -165,8 +177,10 @@ input[type=range]:disabled::-webkit-slider-thumb{background:var(--ink-3)}
 #tools{
   position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:5;
   display:flex;gap:9px;align-items:center;
-  background:var(--panel);backdrop-filter:blur(14px);
-  border:1px solid var(--line);border-radius:10px;padding:9px 11px;
+  background:linear-gradient(168deg,rgba(28,34,40,.80),rgba(13,16,19,.86));
+  backdrop-filter:blur(20px) saturate(1.35);
+  border:1px solid var(--line);border-radius:13px;padding:9px 11px;
+  box-shadow:0 18px 46px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07);
 }
 #tools .seg{width:186px;flex:none}
 #tools .btn{flex:none;padding:7px 13px}

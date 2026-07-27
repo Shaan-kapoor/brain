@@ -45,6 +45,36 @@ def resample_iso(data, affine, iso, order=1):
     return out.astype(np.float32), new_affine
 
 
+def union_grid(vols, orient_aff, iso):
+    """Grid in `orient_aff`'s orientation, at `iso` mm, covering every volume.
+
+    `vols` is a list of (shape, affine).
+    """
+    R = orient_aff[:3, :3] / np.linalg.norm(orient_aff[:3, :3], axis=0)
+    pts = []
+    for shape, aff in vols:
+        idx = np.array(np.meshgrid(*[[0, s - 1] for s in shape], indexing="ij")).reshape(3, -1)
+        pts.append(aff[:3, :3] @ idx + aff[:3, 3:4])
+    world = np.hstack(pts)
+    proj = R.T @ world
+    lo, hi = proj.min(1), proj.max(1)
+    shape = tuple(np.ceil((hi - lo) / iso).astype(int) + 1)
+    aff = np.eye(4)
+    aff[:3, :3] = R * iso
+    aff[:3, 3] = R @ lo
+    return aff, shape
+
+
+def resample_to(data, affine, target_affine, target_shape, order=1):
+    """Resample `data` onto an arbitrary target grid, matching world position."""
+    mat = np.linalg.inv(affine) @ target_affine
+    return ndimage.affine_transform(
+        data.astype(np.float32), mat[:3, :3], offset=mat[:3, 3],
+        output_shape=tuple(target_shape), order=order,
+        mode="constant", cval=0.0, prefilter=order > 1,
+    ).astype(np.float32)
+
+
 def ball(radius):
     r = int(radius)
     z, y, x = np.ogrid[-r:r + 1, -r:r + 1, -r:r + 1]
@@ -126,6 +156,26 @@ def decimate(verts, faces, target_tris):
         verts.astype(np.float32), faces.astype(np.int32), float(reduction)
     )
     return np.asarray(v, np.float32), np.asarray(f, np.int64)
+
+
+def bake_ao(verts_world, mask, affine, sigma_mm=4.5,
+            strength=0.62, lo=0.34, hi=0.86):
+    """Per-vertex ambient occlusion, baked from the volume itself.
+
+    Instead of ray-tracing the mesh, this reads how much tissue surrounds each
+    vertex: blur the binary mask, then sample it at the vertex. Deep in a
+    sulcus you are walled in on all sides, so the blurred occupancy is high;
+    on a gyral crown it is low. That maps directly onto how dark the crevice
+    should be, costs one convolution, and needs no renderer support beyond
+    vertex colours.
+    """
+    zooms = np.linalg.norm(affine[:3, :3], axis=0)
+    occ = ndimage.gaussian_filter(mask.astype(np.float32), sigma_mm / zooms)
+    inv = np.linalg.inv(affine)
+    idx = (inv[:3, :3] @ verts_world.T + inv[:3, 3:4])
+    s = ndimage.map_coordinates(occ, idx, order=1, mode="nearest")
+    shade = 1.0 - strength * np.clip((s - lo) / (hi - lo), 0.0, 1.0)
+    return shade.astype(np.float32)
 
 
 def vertex_normals(verts, faces):

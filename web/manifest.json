@@ -24,13 +24,13 @@
     },
     {
       "name": "head",
-      "label": "Head and scalp (defaced)",
+      "label": "Head and scalp",
       "file": "models/head.glb",
       "color": "#d9b9a4",
       "group": "surface",
       "defaultVisible": false,
-      "triangles": 89998,
-      "volume_cm3": 2315.9
+      "triangles": 119998,
+      "volume_cm3": 4574.9
     },
     {
       "name": "cerebellum",

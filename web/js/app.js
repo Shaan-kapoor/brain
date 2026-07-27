@@ -13,37 +13,76 @@ const stage = $('#stage');
 
 /* ---------------------------------------------------------------- renderer */
 const renderer = new THREE.WebGLRenderer({
-  canvas: $('#view'), antialias: true, preserveDrawingBuffer: true,
+  canvas: $('#view'), antialias: true, preserveDrawingBuffer: true, alpha: true,
 });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearAlpha(0);                 // the CSS gradient shows through
 renderer.localClippingEnabled = true;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 1.12;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0b0d0f);
 
-const camera = new THREE.PerspectiveCamera(38, 1, 1, 4000);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 6000);
 camera.position.set(-360, 90, 150);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.075;
 controls.rotateSpeed = 0.85;
-controls.minDistance = 90;
-controls.maxDistance = 1200;
+controls.zoomSpeed = 0.9;
+// Deliberately tiny: you can fly the camera right inside the brain and look
+// around from within, which is the whole point of the cross-section tools.
+controls.minDistance = 0.6;
+controls.maxDistance = 1600;
+controls.autoRotateSpeed = 0.34;
+
+/* Studio environment, generated rather than downloaded: an equirectangular
+ * gradient with a soft key patch, run through PMREM. This is what gives the
+ * surfaces a believable specular falloff instead of the plastic look you get
+ * from lights alone - and it keeps the page fully offline. */
+function studioEnvironment() {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 256;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0.00, '#cfe4f2');
+  grad.addColorStop(0.42, '#5d6b78');
+  grad.addColorStop(0.62, '#232a30');
+  grad.addColorStop(1.00, '#0a0d10');
+  g.fillStyle = grad; g.fillRect(0, 0, 512, 256);
+  const soft = g.createRadialGradient(150, 60, 8, 150, 60, 130);
+  soft.addColorStop(0, 'rgba(255,255,255,.95)');
+  soft.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = soft; g.fillRect(0, 0, 512, 256);
+  const cool = g.createRadialGradient(390, 130, 6, 390, 130, 110);
+  cool.addColorStop(0, 'rgba(120,205,235,.55)');
+  cool.addColorStop(1, 'rgba(120,205,235,0)');
+  g.fillStyle = cool; g.fillRect(0, 0, 512, 256);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const env = pmrem.fromEquirectangular(tex).texture;
+  pmrem.dispose(); tex.dispose();
+  return env;
+}
+scene.environment = studioEnvironment();
 
 /* ------------------------------------------------------------------ lights */
 // Three-point rig. No HDR file: keeps the whole thing dependency-free and
 // offline, and flat-ish clinical lighting suits an anatomical surface anyway.
-scene.add(new THREE.HemisphereLight(0xbcd4e6, 0x14181c, 1.15));
-const key = new THREE.DirectionalLight(0xffffff, 2.0);
+// Dialled well down from the pre-environment values: the PMREM map now does
+// most of the lifting, and the old intensities blew the highlights out.
+scene.add(new THREE.HemisphereLight(0xbcd4e6, 0x14181c, 0.35));
+const key = new THREE.DirectionalLight(0xfff2e8, 1.15);
 key.position.set(-1, 1.15, 0.75);
 scene.add(key);
-const fill = new THREE.DirectionalLight(0x9fc4dd, 0.75);
+const fill = new THREE.DirectionalLight(0x9fc4dd, 0.3);
 fill.position.set(1, 0.25, 0.6);
 scene.add(fill);
-const rim = new THREE.DirectionalLight(0x7fd9ec, 0.9);
+const rim = new THREE.DirectionalLight(0x7fd9ec, 0.55);
 rim.position.set(0.4, -0.6, -1);
 scene.add(rim);
 
@@ -64,16 +103,37 @@ let clipAxis = 'off', clipFlip = false;
 const loader = new GLTFLoader();
 const loadEl = $('#loader'), loadBar = loadEl.querySelector('i'), loadTxt = loadEl.querySelector('span');
 
+// Per-group surface response. vertexColors is on everywhere because the GLBs
+// carry baked ambient occlusion in COLOR_0 (see pipeline/05_export.py) - it is
+// what gives the sulci their depth.
+const SURFACE = {
+  brain: { roughness: 0.66, clearcoat: 0.22, clearcoatRoughness: 0.55,
+           sheen: 0.45, sheenRoughness: 0.85, sheenColor: 0xffb9a8, env: 0.55 },
+  deep: { roughness: 0.44, clearcoat: 0.45, clearcoatRoughness: 0.35,
+          sheen: 0.25, sheenRoughness: 0.7, sheenColor: 0xffffff, env: 0.75 },
+  vessels: { roughness: 0.26, clearcoat: 0.7, clearcoatRoughness: 0.22,
+             sheen: 0.0, sheenRoughness: 1, sheenColor: 0xffffff, env: 1.0 },
+  surface: { roughness: 0.86, clearcoat: 0.08, clearcoatRoughness: 0.8,
+             sheen: 0.3, sheenRoughness: 0.9, sheenColor: 0xffd9c4, env: 0.4 },
+};
+
 function makeMaterial(meta) {
-  return new THREE.MeshStandardMaterial({
+  const s = SURFACE[meta.group] || SURFACE.deep;
+  return new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(meta.color),
-    roughness: meta.group === 'vessels' ? 0.42 : 0.78,
+    vertexColors: true,
+    roughness: s.roughness,
     metalness: 0.0,
+    clearcoat: s.clearcoat,
+    clearcoatRoughness: s.clearcoatRoughness,
+    sheen: s.sheen,
+    sheenRoughness: s.sheenRoughness,
+    sheenColor: new THREE.Color(s.sheenColor),
+    envMapIntensity: s.env,
     transparent: true,
     opacity: 1,
-    side: THREE.DoubleSide,          // cross-sections stay solid-looking
+    side: THREE.DoubleSide,          // stays solid-looking when cut or entered
     clippingPlanes: [],
-    flatShading: false,
   });
 }
 
@@ -436,7 +496,30 @@ function resize() {
 addEventListener('resize', resize);
 resize();
 
+/* ------------------------------------------------------ idle presentation */
+// Drift back into a slow orbit once the user stops touching it, so the page
+// is never a static object sitting still.
+let lastInput = performance.now();
+const IDLE_MS = 5000;
+['pointerdown', 'wheel', 'pointermove'].forEach((ev) =>
+  renderer.domElement.addEventListener(ev, () => { lastInput = performance.now(); }));
+controls.addEventListener('start', () => { lastInput = performance.now(); });
+
+/* ---------------------------------------------------------- focus on part */
+function focusOn(mesh, pad = 2.1) {
+  mesh.geometry.computeBoundingSphere();
+  const s = mesh.geometry.boundingSphere;
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  controls.target.copy(s.center);
+  camera.position.copy(s.center).add(dir.multiplyScalar(Math.max(s.radius * pad, 6)));
+}
+renderer.domElement.addEventListener('dblclick', (ev) => {
+  const hit = pick(ev);
+  if (hit) focusOn(hit.object);
+});
+
 renderer.setAnimationLoop(() => {
+  controls.autoRotate = performance.now() - lastInput > IDLE_MS && !pinMode;
   controls.update();
   updateGnomon();
   updatePinLabels();
