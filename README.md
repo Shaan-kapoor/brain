@@ -78,8 +78,10 @@ institution) and lives **outside this repository** on purpose, with `.gitignore`
 as a second line of defence.
 
 A 3D face reconstructed from MRI is biometric data — it can be matched against
-a photograph. `03_head.py` therefore writes two meshes: `head.glb`, which has
-the face flattened away and is what the viewer loads, and
-`head_identifiable.glb`, which is git-ignored and never leaves the machine.
+a photograph. `03_head.py` therefore builds two head masks, but only the
+defaced one is ever exported to a mesh: `web/models/head.glb` has the face
+flattened away, and that is the only head geometry in the repo. The
+identifiable mask stays in `build/` as a NIfTI and never becomes a `.glb`
+(`.gitignore` also blocks `head_identifiable.glb` in case you export one).
 
 Not a diagnostic tool. Nothing here has been read by a radiologist.
