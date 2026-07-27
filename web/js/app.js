@@ -83,10 +83,12 @@ scene.add(key, fill, rim);
 const root = new THREE.Group();
 scene.add(root);
 
-const parts = new Map();
+const parts = new Map();          // only meshes that have finished loading
+const wanted = new Set();         // names that *should* be visible
 let manifest = null, anatomy = null;
 let selected = null, hoveredChip = null, brainVolume = 1;
 let baseDist = 400;
+let queue = [], loading = 0, remaining = 0;
 
 const clipPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
 let clipAxis = 'off', clipFlip = false;
@@ -131,44 +133,93 @@ function makeMaterial(meta) {
   });
 }
 
+function loadPart(meta) {
+  return new Promise((res) => {
+    loader.load(meta.file, (gltf) => {
+      const src = gltf.scene.getObjectByProperty('isMesh', true);
+      const geom = src.geometry;
+      if (!geom.attributes.normal) geom.computeVertexNormals();
+      geom.computeBoundsTree();
+      geom.computeBoundingBox();
+      const sz = geom.boundingBox.getSize(new THREE.Vector3());
+      meta.extent = [Math.round(sz.x), Math.round(sz.z), Math.round(sz.y)];  // W x D x H
+      const mesh = new THREE.Mesh(geom, makeMaterial(meta));
+      mesh.name = meta.name;
+      mesh.userData.meta = meta;
+      mesh.visible = wanted.has(meta.name);      // honour clicks made while it loaded
+      mesh.renderOrder = meta.group === 'surface' ? 10 : (meta.group === 'brain' ? 5 : 0);
+      root.add(mesh);
+      parts.set(meta.name, { mesh, meta, material: mesh.material });
+      invalidatePickList();
+      res(meta.name);
+    }, undefined, (e) => { console.warn('failed', meta.file, e); res(null); });
+  });
+}
+
+/* Background loading. The whole set is 25 MB and only two parts are on screen
+ * at the start, so everything else streams in afterwards while the model is
+ * already interactive. Clicking a chip that has not arrived yet jumps it to
+ * the front of the queue rather than making you wait for the ones before it. */
+const CONCURRENCY = 3;
+
+function pump() {
+  while (loading < CONCURRENCY && queue.length) {
+    const meta = queue.shift();
+    loading++;
+    loadPart(meta).then(() => {
+      loading--; remaining--;
+      applyOpacity(); syncChips(); updateLoadHint();
+      pump();
+    });
+  }
+}
+
+function prioritise(name) {
+  const i = queue.findIndex((m) => m.name === name);
+  if (i > 0) queue.unshift(queue.splice(i, 1)[0]);
+  pump();
+}
+
+function updateLoadHint() {
+  const el = $('#loadhint');
+  if (!el) return;
+  el.textContent = remaining > 0 ? `loading ${remaining} more` : '';
+  el.classList.toggle('on', remaining > 0);
+}
+
 async function boot() {
   [manifest, anatomy] = await Promise.all([
     fetch('manifest.json').then((r) => r.json()),
     fetch('anatomy.json').then((r) => r.json()),
   ]);
   brainVolume = manifest.parts.find((p) => p.name === 'brain')?.volume_cm3 || 1;
+  for (const p of manifest.parts) if (p.defaultVisible) wanted.add(p.name);
 
+  buildLayerUI();                       // chips exist before their meshes do
+
+  // Phase 1: only what is actually on screen at the start, fetched in
+  // parallel rather than one after another.
+  const first = manifest.parts.filter((p) => p.defaultVisible);
+  const rest = manifest.parts.filter((p) => !p.defaultVisible);
+  loadTxt.textContent = 'brain';
   let done = 0;
-  for (const meta of manifest.parts) {
-    loadTxt.textContent = meta.label;
-    await new Promise((res) => {
-      loader.load(meta.file, (gltf) => {
-        const src = gltf.scene.getObjectByProperty('isMesh', true);
-        const geom = src.geometry;
-        if (!geom.attributes.normal) geom.computeVertexNormals();
-        geom.computeBoundsTree();
-        geom.computeBoundingBox();
-        const sz = geom.boundingBox.getSize(new THREE.Vector3());
-        meta.extent = [Math.round(sz.x), Math.round(sz.z), Math.round(sz.y)];  // W x D x H
-        const mesh = new THREE.Mesh(geom, makeMaterial(meta));
-        mesh.name = meta.name;
-        mesh.userData.meta = meta;
-        mesh.visible = meta.defaultVisible;
-        mesh.renderOrder = meta.group === 'surface' ? 10 : (meta.group === 'brain' ? 5 : 0);
-        root.add(mesh);
-        parts.set(meta.name, { mesh, meta, material: mesh.material });
-        res();
-      }, undefined, (e) => { console.warn('failed', meta.file, e); res(); });
-    });
-    loadBar.style.width = `${(++done / manifest.parts.length) * 100}%`;
-  }
+  await Promise.all(first.map((m) => loadPart(m).then((r) => {
+    loadBar.style.width = `${(++done / first.length) * 100}%`;
+    return r;
+  })));
 
   frameAll();
-  buildLayerUI();
   applyOpacity();
+  syncChips();
   loadEl.classList.add('done');
   setTimeout(() => loadEl.remove(), 800);
   startIntro();
+
+  // Phase 2: everything else, in the background
+  queue = rest.slice();
+  remaining = queue.length;
+  updateLoadHint();
+  pump();
 }
 
 function frameAll() {
@@ -259,16 +310,16 @@ function buildLayerUI() {
     wrap.innerHTML = `<b>${gname}</b>`;
     const chips = document.createElement('div');
     chips.className = 'chips';
+    // Built from the manifest, not from loaded meshes: the chips have to be
+    // there and clickable while their geometry is still streaming in.
     for (const meta of items) {
-      const rec = parts.get(meta.name);
-      if (!rec) continue;
       const chip = document.createElement('button');
-      chip.className = 'chip' + (rec.mesh.visible ? ' on' : '');
+      chip.className = 'chip';
       chip.style.setProperty('--c', meta.color);
       chip.dataset.name = meta.name;
-      chip.title = `${meta.label} · ${meta.volume_cm3} cm³ — double-click to isolate`;
+      chip.title = `${meta.label} · ${meta.volume_cm3} cm³, double-click to isolate`;
       chip.innerHTML = `<i></i><span>${meta.short || meta.label}</span>`;
-      chip.addEventListener('click', () => setVisible(meta.name, !rec.mesh.visible));
+      chip.addEventListener('click', () => setVisible(meta.name, !wanted.has(meta.name)));
       chip.addEventListener('dblclick', (e) => { e.preventDefault(); solo(meta.name); });
       if (!isTouch) {
         chip.addEventListener('pointerenter', () => setChipHover(meta.name));
@@ -282,27 +333,32 @@ function buildLayerUI() {
   syncChips();
 }
 
-function setVisible(name, on) {
-  const rec = parts.get(name);
-  if (!rec) return;
-  rec.mesh.visible = on;
-  if (!on && selected?.name === name) select(null);
+// `wanted` is the source of truth for visibility, so a chip works whether or
+// not its mesh has arrived; the loader applies it when the geometry lands.
+function applyWanted() {
+  for (const [n, rec] of parts) rec.mesh.visible = wanted.has(n);
   invalidatePickList(); autoTransparency(); syncChips();
 }
 
+function setVisible(name, on) {
+  if (on) { wanted.add(name); prioritise(name); } else { wanted.delete(name); }
+  if (!on && selected?.name === name) select(null);
+  applyWanted();
+}
+
 function solo(name) {
-  for (const [n, rec] of parts) rec.mesh.visible = (n === name);
-  invalidatePickList(); autoTransparency(); syncChips();
+  wanted.clear(); wanted.add(name); prioritise(name);
+  applyWanted();
 }
 
 function applyPreset(key) {
   const fn = PRESETS[key];
   if (!fn) return;
-  for (const { mesh, meta } of parts.values()) mesh.visible = !!fn(meta);
+  wanted.clear();
+  for (const meta of manifest.parts) if (fn(meta)) { wanted.add(meta.name); prioritise(meta.name); }
   if (key === 'deep' || key === 'all') $('#opbrain').value = 22;
   if (key === 'surface' || key === 'lobes') $('#opbrain').value = 100;
-  applyOpacity();
-  invalidatePickList(); select(null); syncChips();
+  applyWanted(); applyOpacity(); select(null);
   document.querySelectorAll('#presets button').forEach((b) =>
     b.classList.toggle('on', b.dataset.preset === key));
 }
@@ -313,8 +369,9 @@ $('#presets').addEventListener('click', (e) => {
 
 function syncChips() {
   document.querySelectorAll('.chip').forEach((c) => {
-    const rec = parts.get(c.dataset.name);
-    c.classList.toggle('on', !!rec && rec.mesh.visible);
+    const n = c.dataset.name;
+    c.classList.toggle('on', wanted.has(n));
+    c.classList.toggle('pending', !parts.has(n));
   });
 }
 
@@ -357,10 +414,11 @@ $('#opbrain').addEventListener('input', () => applyOpacity());
 $('#ophead').addEventListener('input', () => applyOpacity());
 
 function autoTransparency() {
-  const anyInside = [...parts.values()].some(
-    (p) => (p.meta.group === 'deep' || p.meta.group === 'cortex') && p.mesh.visible);
-  const brain = parts.get('brain');
-  if (anyInside && brain && brain.mesh.visible && +$('#opbrain').value > 60) {
+  // Reads `wanted`, not loaded meshes, so it still fades the cortex when the
+  // structure you switched on has not finished streaming yet.
+  const anyInside = manifest.parts.some(
+    (m) => (m.group === 'deep' || m.group === 'cortex') && wanted.has(m.name));
+  if (anyInside && wanted.has('brain') && +$('#opbrain').value > 60) {
     $('#opbrain').value = 22; applyOpacity();
   }
 }
