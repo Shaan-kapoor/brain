@@ -1,0 +1,169 @@
+/* Reading page for the build write-up. Same palette as the viewer, but laid
+   out as an article: one column, generous measure, images that breathe. */
+
+@font-face{
+  font-family:"Inter Variable";
+  font-style:normal;
+  font-weight:100 900;
+  font-display:swap;
+  src:url("../fonts/inter-latin-wght-normal.woff2") format("woff2");
+}
+
+:root{
+  --bg:#07090b;
+  --ink:#e6eaee;
+  --ink-2:#9aa5ad;
+  --ink-3:#5d666e;
+  --line:rgba(255,255,255,.10);
+  --line-2:rgba(255,255,255,.055);
+  --accent:#4cc9e0;
+  --warn:#e8b04b;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",
+         "Inter Variable",Inter,"Segoe UI",system-ui,sans-serif;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{
+  margin:0;color:var(--ink);font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+  background:
+    radial-gradient(120% 60% at 50% 0%,rgba(78,132,160,.14),transparent 60%),
+    radial-gradient(80% 50% at 85% 100%,rgba(76,201,224,.07),transparent 70%),
+    var(--bg);
+  background-attachment:fixed;
+}
+
+/* ---------- top bar ---------- */
+header.bar{
+  position:sticky;top:0;z-index:20;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:13px 22px;
+  background:rgba(7,9,11,.78);backdrop-filter:blur(18px) saturate(1.3);
+  border-bottom:1px solid var(--line-2);
+}
+header.bar a.back{
+  display:inline-flex;align-items:center;gap:8px;
+  color:var(--ink-2);text-decoration:none;
+  font:500 12.5px/1 var(--sans);padding:8px 13px;
+  border:1px solid var(--line);border-radius:9px;transition:.15s;
+}
+header.bar a.back:hover{color:var(--ink);border-color:rgba(255,255,255,.24);background:rgba(255,255,255,.05)}
+header.bar .who{font:400 10.5px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+
+/* ---------- hero ---------- */
+.hero{max-width:760px;margin:0 auto;padding:64px 22px 8px;text-align:center}
+.hero h1{
+  margin:0 0 18px;font:250 44px/1.08 var(--sans);letter-spacing:-.015em;
+  background:linear-gradient(96deg,#fff 10%,#b9d2de 55%,#4cc9e0 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero .lede{margin:0 auto;max-width:600px;font:300 18.5px/1.62 var(--sans);color:var(--ink-2)}
+.hero .lede strong{color:var(--ink);font-weight:500}
+
+/* ---------- article ---------- */
+article{max-width:760px;margin:0 auto;padding:0 22px 110px}
+article h2{
+  margin:64px 0 18px;font:500 27px/1.25 var(--sans);letter-spacing:-.01em;color:var(--ink);
+  padding-top:18px;border-top:1px solid var(--line-2);
+}
+article h3{margin:38px 0 12px;font:500 18px/1.35 var(--sans);color:var(--ink)}
+article p{margin:0 0 18px;font:300 17px/1.72 var(--sans);color:#c3ccd3}
+article p strong{color:var(--ink);font-weight:500}
+article em{color:var(--ink);font-style:italic}
+article a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(76,201,224,.32)}
+article a:hover{border-bottom-color:var(--accent)}
+article ol,article ul{margin:0 0 18px;padding-left:22px}
+article li{margin:0 0 10px;font:300 17px/1.7 var(--sans);color:#c3ccd3}
+article li strong{color:var(--ink);font-weight:500}
+
+code{
+  font:400 .88em/1.5 var(--mono);background:rgba(255,255,255,.07);
+  padding:2px 6px;border-radius:5px;color:#cfe6ec;
+}
+pre{
+  margin:0 0 22px;padding:16px 18px;overflow-x:auto;
+  background:rgba(255,255,255,.035);border:1px solid var(--line-2);border-radius:11px;
+}
+pre code{background:none;padding:0;font-size:13.2px;line-height:1.65;color:#b9c7cf}
+
+/* ---------- figures ---------- */
+figure{margin:30px 0;text-align:center}
+figure img{
+  max-width:100%;height:auto;border-radius:12px;
+  border:1px solid var(--line-2);background:#0a0d10;
+  box-shadow:0 14px 40px rgba(0,0,0,.42);
+}
+figcaption{
+  margin-top:11px;font:400 13px/1.6 var(--sans);color:var(--ink-3);
+  max-width:560px;margin-left:auto;margin-right:auto;
+}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.trio img{border-radius:12px}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;margin:0 0 24px;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font:400 14.5px/1.5 var(--sans)}
+th,td{padding:11px 13px;text-align:left;border-bottom:1px solid var(--line-2)}
+th{
+  font:600 10.5px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-3);border-bottom-color:var(--line);white-space:nowrap;
+}
+td{color:var(--ink-2)}
+td strong{color:var(--ink);font-weight:600}
+tbody tr:hover td{background:rgba(255,255,255,.022)}
+
+/* ---------- callouts ---------- */
+.note{
+  margin:26px 0;padding:16px 18px;border-radius:12px;
+  border:1px solid rgba(76,201,224,.26);background:rgba(76,201,224,.07);
+}
+.note.warn{border-color:rgba(232,176,75,.28);background:rgba(232,176,75,.07)}
+.note b{
+  display:block;font:600 10.5px/1 var(--mono);letter-spacing:.14em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:9px;
+}
+.note.warn b{color:var(--warn)}
+.note p{margin:0;font-size:15.5px;line-height:1.65;color:#bcd6de}
+.note.warn p{color:#e6cb95}
+
+/* ---------- contents ---------- */
+nav.toc{
+  margin:44px 0 0;padding:20px 22px;border:1px solid var(--line-2);border-radius:13px;
+  background:rgba(255,255,255,.022);
+}
+nav.toc b{
+  display:block;font:600 10.5px/1 var(--mono);letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:13px;
+}
+nav.toc ol{margin:0;padding-left:19px;columns:2;column-gap:26px}
+nav.toc li{margin:0 0 8px;font-size:14.5px;line-height:1.5}
+nav.toc a{color:var(--ink-2);border:0}
+nav.toc a:hover{color:var(--accent)}
+
+footer.end{
+  max-width:760px;margin:0 auto;padding:0 22px 80px;text-align:center;
+}
+footer.end a{
+  display:inline-flex;align-items:center;gap:9px;
+  padding:13px 22px;border-radius:11px;border:1px solid var(--line);
+  color:var(--ink);text-decoration:none;font:500 14px/1 var(--sans);transition:.15s;
+}
+footer.end a:hover{background:rgba(76,201,224,.12);border-color:rgba(76,201,224,.5);color:var(--accent)}
+
+@media (max-width:720px){
+  .hero{padding:40px 18px 4px}
+  .hero h1{font-size:32px}
+  .hero .lede{font-size:16.5px}
+  article{padding:0 18px 70px}
+  article h2{font-size:22px;margin-top:48px}
+  article p,article li{font-size:16px}
+  nav.toc ol{columns:1}
+  .trio{grid-template-columns:1fr;gap:16px}
+  header.bar{padding:11px 14px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+}

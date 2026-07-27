@@ -258,26 +258,87 @@ function applyIntro(now) {
 }
 
 /* ------------------------------------------------------------------- modes */
-function setMode(mode) {
-  body.dataset.mode = mode;
-  $('#modeBtn').textContent = mode === 'explore' ? 'Minimal' : 'Explore';
-  $('#modeBtn').classList.toggle('on', mode === 'explore');
-  if (mode === 'minimal') body.dataset.sheet = 'none';
-  if (mode === 'explore' && selected) renderDetail(selected);
-}
-$('#modeBtn').addEventListener('click', () =>
-  setMode(body.dataset.mode === 'explore' ? 'minimal' : 'explore'));
+/* On a phone the panels are sheets, and a sheet is only revealed by
+ * [data-mode="explore"][data-sheet="..."]. Switching to explore mode on its
+ * own therefore showed nothing at all, which made the button look broken.
+ * So on mobile the two are bound together: explore mode means a sheet is
+ * open, and closing the sheet returns to minimal. */
+const sheetOpen = () => body.dataset.sheet !== 'none';
 
-function openSheet(name) {
-  body.dataset.sheet = body.dataset.sheet === name ? 'none' : name;
+function updateModeButton() {
+  const b = $('#modeBtn');
+  const active = isMobile() ? sheetOpen() : body.dataset.mode === 'explore';
+  b.textContent = active ? (isMobile() ? 'Close' : 'Minimal') : 'Explore';
+  b.classList.toggle('on', active);
 }
-$('#sheetBtn').addEventListener('click', () => {
-  if (body.dataset.mode !== 'explore') setMode('explore');
-  openSheet('layers');
+
+function setMode(mode, sheet = null) {
+  body.dataset.mode = mode;
+  if (mode === 'minimal') body.dataset.sheet = 'none';
+  else if (sheet) body.dataset.sheet = sheet;
+  if (mode === 'explore' && selected) renderDetail(selected);
+  updateModeButton();
+}
+
+$('#modeBtn').addEventListener('click', () => {
+  if (isMobile()) {
+    if (sheetOpen()) setMode('minimal');
+    else setMode('explore', 'layers');
+  } else {
+    setMode(body.dataset.mode === 'explore' ? 'minimal' : 'explore');
+  }
 });
-// tapping the grip closes the sheet
-document.querySelectorAll('.sheet-grip').forEach((g) =>
-  g.addEventListener('click', () => { body.dataset.sheet = 'none'; }));
+
+function closeSheet() {
+  body.dataset.sheet = 'none';
+  if (isMobile()) body.dataset.mode = 'minimal';
+  updateModeButton();
+}
+
+/* Swipe the sheet down to dismiss it. The sheet follows the finger, then
+ * either snaps back or closes depending on how far it travelled and how fast
+ * it was moving, so a short flick dismisses as readily as a long drag. */
+function makeDismissable(panel) {
+  const grip = panel.querySelector('.sheet-grip');
+  const scroll = panel.querySelector('.panel-scroll');
+  let startY = 0, dy = 0, t0 = 0, active = false, moved = false;
+
+  function down(e, fromGrip) {
+    // From the body of the sheet only when it is already scrolled to the top,
+    // otherwise this would fight the list underneath it.
+    if (!isMobile() || (!fromGrip && scroll.scrollTop > 0)) return;
+    active = true; moved = false;
+    startY = e.clientY; dy = 0; t0 = performance.now();
+    panel.style.transition = 'none';
+  }
+  function move(e) {
+    if (!active) return;
+    dy = Math.max(0, e.clientY - startY);          // downward only
+    if (dy > 4) { moved = true; e.preventDefault(); }
+    // resist a little past halfway so it feels attached rather than loose
+    panel.style.transform = `translateY(${dy > 160 ? 160 + (dy - 160) * 0.35 : dy}px)`;
+  }
+  function up() {
+    if (!active) return;
+    active = false;
+    panel.style.transition = '';
+    panel.style.transform = '';
+    const velocity = dy / Math.max(performance.now() - t0, 1);   // px per ms
+    if (dy > 88 || velocity > 0.45) closeSheet();
+  }
+
+  grip.addEventListener('pointerdown', (e) => down(e, true));
+  scroll.addEventListener('pointerdown', (e) => down(e, false));
+  panel.addEventListener('pointermove', move, { passive: false });
+  panel.addEventListener('pointerup', up);
+  panel.addEventListener('pointercancel', up);
+  // a tap on the grip closes too, but not the tap that ends a snap-back drag
+  grip.addEventListener('click', () => { if (!moved) closeSheet(); });
+}
+document.querySelectorAll('.panel').forEach(makeDismissable);
+
+// switching between phone and desktop layouts changes what the button means
+mqMobile.addEventListener('change', updateModeButton);
 
 /* ----------------------------------------------------------------- layer UI */
 const GROUPS = [
@@ -618,7 +679,7 @@ $('#hemi').addEventListener('click', () => {
      <div class="d-fact"><b>Worth knowing</b><span>${h.fact}</span></div>
      <div class="d-myth"><b>Common myth</b><span>${h.myth}</span></div>`;
   clearCallout();
-  if (isMobile()) body.dataset.sheet = 'detail';
+  if (isMobile()) { body.dataset.sheet = 'detail'; updateModeButton(); }
 });
 
 /* ------------------------------------------------------------ cross-section */

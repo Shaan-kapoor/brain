@@ -6,7 +6,7 @@ and went looking.
 
 There was.
 
-![Rotating tour of the model](docs/gif/tour.gif)
+![Rotating tour of the model](web/docs/gif/tour.gif)
 
 Twenty separately selectable structures covering 95.4% of the brain by volume.
 Click any of them and it tells you what it is, what it does, and how big it is.
@@ -99,7 +99,7 @@ What `pipeline/01_brain.py` does:
    real tissue without flooding through the skull into the scalp.
 5. Close and fill.
 
-![Brain mask drawn over the SWI slices](docs/pipeline/seg-brain-overlay.png)
+![Brain mask drawn over the SWI slices](web/docs/pipeline/seg-brain-overlay.png)
 
 Blue is the smooth envelope, red is the final surface. The contour hugs the
 temporal lobes and cerebellum, which is exactly where threshold methods usually
@@ -132,7 +132,7 @@ at every result:
 I settled on the 13th percentile of intensity inside the envelope, expressed as
 a percentile rather than a fixed number so it adapts to how bright the scan is.
 
-![The cortical surface](docs/pipeline/seg-brain-mesh.png)
+![The cortical surface](web/docs/pipeline/seg-brain-mesh.png)
 
 One detail cost me an hour. Out of pure habit I followed the threshold with
 `binary_closing` and `fill_holes`. Both of them reseal the exact folds the
@@ -147,7 +147,7 @@ Time-of-flight angiography makes flowing blood far brighter than everything
 around it, so a high threshold finds the arteries immediately. It also finds
 subcutaneous fat, which is just as bright, and there is a lot of fat in a neck.
 
-![First attempt, arteries buried in fat](docs/pipeline/seg-arteries-overlay.png)
+![First attempt, arteries buried in fat](web/docs/pipeline/seg-arteries-overlay.png)
 
 The small bright dots deep in the middle are the real arteries. Everything
 tracing the outline of the neck is fat. Three filters separate them:
@@ -163,7 +163,7 @@ transform: only 1.7 M of 19 M voxels came back as "deep", and the filter
 cheerfully deleted the arteries along with the fat. Blurring hard *before*
 thresholding makes the interior solid and fixes it.
 
-![The depth filter working properly](docs/pipeline/seg-depth-filter.png)
+![The depth filter working properly](web/docs/pipeline/seg-depth-filter.png)
 
 **How elongated it is.** Run PCA on each blob's voxel cloud. A tube puts nearly
 all of its variance on one axis.
@@ -173,7 +173,7 @@ along *two* axes instead of one, so it sails through the elongation test.
 Demanding that the second principal axis be under 16% of the first is what
 finally cleared out the last stubborn clumps.
 
-![The clean arterial tree](docs/pipeline/seg-arteries-mesh.png)
+![The clean arterial tree](web/docs/pipeline/seg-arteries-mesh.png)
 
 Both carotids with their bifurcations, both carotid siphons curling at the base
 of the skull, both vertebral arteries. 10.2 cm³ of vessel, and genuinely my
@@ -197,7 +197,7 @@ length, 58 k voxels down to 14 k. So the output now goes into a union grid:
 SWI orientation, so the arteries land in the brain's frame, but extended far
 enough down to keep the whole neck.
 
-![Arteries registered onto the brain](docs/pipeline/seg-registration.png)
+![Arteries registered onto the brain](web/docs/pipeline/seg-registration.png)
 
 ## Step 6 : The head
 
@@ -209,7 +209,7 @@ They come from the same session, so they already share a coordinate frame, and
 `pipeline/03_head.py` simply unions the two silhouettes. SWI gives the width
 and the skull vault, sagittal T1 gives the face.
 
-![The head surface](docs/pipeline/seg-head-mesh.png)
+![The head surface](web/docs/pipeline/seg-head-mesh.png)
 
 The head is **defaced** by default. Everything in front of the frontal lobe and
 below eye level gets flattened away. A 3D face reconstructed from MRI is
@@ -229,7 +229,7 @@ traces back to a published atlas instead of to a boundary I drew by eye.
 The registration is cross-modality, since the atlas template is T1-weighted and
 my scan is SWI, so it runs on mutual information over brain-extracted volumes.
 
-![Atlas labels on the slices](docs/pipeline/seg-atlas-overlay.png)
+![Atlas labels on the slices](web/docs/pipeline/seg-atlas-overlay.png)
 
 The ventricles, thalamus, caudate, putamen, hippocampus and brainstem contours
 all land on the real structures, which is the only check that matters.
@@ -299,20 +299,20 @@ offline.
 else. Click any structure and a leader line runs from the exact point you
 touched out to a card telling you what it is.
 
-![Minimal mode with a callout](docs/ui/ui-minimal-callout.png)
+![Minimal mode with a callout](web/docs/ui/ui-minimal-callout.png)
 
 **Explore** brings in a symmetric pair of panels, layers on the left and detail
 on the right, so the layout stays balanced instead of leaning to one side. In
 this mode the callout shrinks down to just a label on the end of the leader,
 because repeating the same paragraphs over the model was only covering it up.
 
-![Switching views in explore mode](docs/gif/explore.gif)
+![Switching views in explore mode](web/docs/gif/explore.gif)
 
 The right panel is where the detail lives: which anatomical system it belongs
 to, volume, its share of the whole brain, physical size in millimetres,
 triangle count, what it does, and one thing worth knowing about it.
 
-![Deep structures](docs/ui/ui-deep.png)
+![Deep structures](web/docs/ui/ui-deep.png)
 
 Layers are **chips, not switches**. Click to toggle, double-click to isolate,
 hover to light it up in 3D. Above them, a row of Views sets a whole scene in
@@ -324,14 +324,14 @@ show.
 
 There is a cross-section that cuts a plane through everything at once:
 
-![Cross-section sweeping through the brain](docs/gif/section.gif)
+![Cross-section sweeping through the brain](web/docs/gif/section.gif)
 
 And a topic card on hemispheres, covering contralateral control, language
 lateralisation and the corpus callosum. It also flatly calls the
 "left-brained / right-brained personality" idea unsupported, since that is the
 version most people have actually heard:
 
-![Hemispheres topic](docs/ui/ui-hemispheres.png)
+![Hemispheres topic](web/docs/ui/ui-hemispheres.png)
 
 A few other things it does: fly the camera right inside the brain, double-click
 a structure to focus on it, jump to anatomical preset views, and drift into a
@@ -342,7 +342,7 @@ slow orbit after five seconds of being left alone.
 The panels turn into bottom sheets sitting above the bar, one at a time, with
 38 px touch targets.
 
-![The viewer on a phone](docs/gif/mobile.gif)
+![The viewer on a phone](web/docs/gif/mobile.gif)
 
 The floating callout docks to the bottom, because a card tethered to a line is
 unreadable at that size. On a phone that card is the only detail surface, so it
@@ -405,7 +405,7 @@ I switched materials to `FrontSide` so the GPU could cull back faces. Free
 performance, obviously. It benchmarked beautifully, 60 fps with everything on.
 It also did this:
 
-![Backface culling punching holes through the cortex](docs/ui/bug-hollow.png)
+![Backface culling punching holes through the cortex](web/docs/ui/bug-hollow.png)
 
 These meshes come from marching cubes on a **non-watertight** mask, and their
 triangle winding is mixed. Culling deleted every inward-facing triangle,

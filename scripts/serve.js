@@ -23,11 +23,18 @@ const TYPES = {
 
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split('?')[0]);
-  const rel = path.normalize(url === '/' ? '/index.html' : url);
-  const file = path.join(ROOT, rel);
+  const rel = path.normalize(url);
+  let file = path.join(ROOT, rel);
 
   // never serve outside web/
   if (!file.startsWith(ROOT)) { res.writeHead(403).end('forbidden'); return; }
+
+  // Directory -> index.html, the way a static host does it. Without this
+  // /docs/ 404s locally while working fine once deployed, which is exactly
+  // the sort of difference you want the dev server not to have.
+  try {
+    if (fs.statSync(file).isDirectory()) file = path.join(file, 'index.html');
+  } catch { /* fall through to the 404 below */ }
 
   fs.readFile(file, (err, buf) => {
     if (err) { res.writeHead(404).end('not found'); return; }

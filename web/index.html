@@ -5,7 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#07090b">
 <title>Shaan's Brain</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🧠</text></svg>">
+
+<link rel="icon" href="icons/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+<!-- the wordmark is the first thing painted, so fetch its face up front -->
+<link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/app.css">
 <script type="importmap">
 {
@@ -35,6 +42,8 @@
   <h1>SHAAN'S BRAIN</h1>
   <p id="subtitle">tap anything to learn about it</p>
 </header>
+
+<a id="docsBtn" href="docs/" title="How this was made">Docs</a>
 
 <!-- ---------------------------------------------------------- left: layers -->
 <aside id="layers" class="panel">
@@ -99,7 +108,6 @@
     <button data-view="S" title="top">S</button>
     <button data-view="I" title="bottom">I</button>
   </div>
-  <button id="sheetBtn" class="btn ghost mobile-only">Layers</button>
   <button id="modeBtn" class="btn">Explore</button>
   <button id="resetBtn" class="btn ghost" title="reset view">
     <span class="lbl">Reset</span><span class="ico">↺</span>
