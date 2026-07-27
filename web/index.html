@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Brain — MRI 2023-10-07</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🧠</text></svg>">
+<link rel="stylesheet" href="css/app.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/": "./vendor/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="stage">
+  <canvas id="view"></canvas>
+
+  <div id="loader"><div class="bar"><i></i></div><span>loading volumes</span></div>
+
+  <!-- floating HTML labels for pins, positioned per frame from 3D -->
+  <div id="pinlayer"></div>
+  <div id="hovertip" hidden></div>
+</div>
+
+<header id="titlebar">
+  <h1>BRAIN</h1>
+  <dl>
+    <div><dt>study</dt><dd>2023-10-07</dd></div>
+    <div><dt>scanner</dt><dd>Philips Achieva 1.5 T</dd></div>
+    <div><dt>source</dt><dd>SWI 0.6×0.6×1.5 mm · TOF MRA 0.34×0.34×0.75 mm</dd></div>
+  </dl>
+</header>
+
+<aside id="layers" class="panel">
+  <h2>Layers</h2>
+  <div id="layerlist"></div>
+
+  <h2>Opacity</h2>
+  <div class="row"><span class="mini">brain</span><input type="range" id="opbrain" min="4" max="100" value="100"></div>
+  <div class="row"><span class="mini">head</span><input type="range" id="ophead" min="4" max="100" value="28"></div>
+
+  <h2>Cross-section</h2>
+  <div class="row">
+    <div class="seg" id="clipaxis">
+      <button data-axis="off" class="on">off</button>
+      <button data-axis="x">sag</button>
+      <button data-axis="y">ax</button>
+      <button data-axis="z">cor</button>
+    </div>
+  </div>
+  <div class="row"><input type="range" id="clippos" min="-100" max="100" value="0" step="0.5" disabled></div>
+  <div class="row"><label class="chk"><input type="checkbox" id="clipflip"> flip side</label></div>
+</aside>
+
+<aside id="inspect" class="panel">
+  <h2>Selection</h2>
+  <div id="selinfo" class="empty">Click any structure to identify it.</div>
+
+  <h2>Pins <span id="pincount">0</span></h2>
+  <div class="row">
+    <button id="pinmode" class="btn">＋ place pin</button>
+    <button id="pinsave" class="btn ghost">export</button>
+  </div>
+  <div id="pinlist"></div>
+</aside>
+
+<footer id="tools">
+  <div class="seg" id="views">
+    <button data-view="L">L</button><button data-view="R">R</button>
+    <button data-view="A">A</button><button data-view="P">P</button>
+    <button data-view="S">S</button><button data-view="I">I</button>
+  </div>
+  <button id="reset" class="btn ghost">reset</button>
+  <button id="shot" class="btn ghost">capture</button>
+  <div id="scalebar"><i></i><span>50 mm</span></div>
+</footer>
+
+<div id="orient">
+  <span class="ox">R</span><span class="oy">S</span><span class="oz">A</span>
+</div>
+
+<div id="disclaimer">Research / personal visualisation. Not a diagnostic image.</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

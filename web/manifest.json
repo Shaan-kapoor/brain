@@ -1,0 +1,116 @@
+{
+  "subject": "self-scan, Philips Achieva 1.5T, 2023-10-07",
+  "units": "millimetres, recentred on brain centroid",
+  "parts": [
+    {
+      "name": "brain",
+      "label": "Brain surface",
+      "file": "models/brain.glb",
+      "color": "#e8d3c6",
+      "group": "brain",
+      "defaultVisible": true,
+      "triangles": 260000,
+      "volume_cm3": 1173.0
+    },
+    {
+      "name": "arteries",
+      "label": "Arteries (carotid + vertebral)",
+      "file": "models/arteries.glb",
+      "color": "#d64545",
+      "group": "vessels",
+      "defaultVisible": true,
+      "triangles": 75910,
+      "volume_cm3": 10.2
+    },
+    {
+      "name": "head",
+      "label": "Head and scalp (defaced)",
+      "file": "models/head.glb",
+      "color": "#d9b9a4",
+      "group": "surface",
+      "defaultVisible": false,
+      "triangles": 89998,
+      "volume_cm3": 2315.9
+    },
+    {
+      "name": "cerebellum",
+      "label": "Cerebellum",
+      "file": "models/cerebellum.glb",
+      "color": "#82c8eb",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 60000,
+      "volume_cm3": 105.7
+    },
+    {
+      "name": "ventricles",
+      "label": "Lateral ventricles",
+      "file": "models/ventricles.glb",
+      "color": "#5aa9e6",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 28504,
+      "volume_cm3": 11.1
+    },
+    {
+      "name": "brainstem",
+      "label": "Brainstem",
+      "file": "models/brainstem.glb",
+      "color": "#f0b45a",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 26248,
+      "volume_cm3": 27.7
+    },
+    {
+      "name": "thalamus",
+      "label": "Thalamus",
+      "file": "models/thalamus.glb",
+      "color": "#fa82a0",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 17772,
+      "volume_cm3": 14.2
+    },
+    {
+      "name": "hippocampus",
+      "label": "Hippocampus",
+      "file": "models/hippocampus.glb",
+      "color": "#96dc82",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 19288,
+      "volume_cm3": 9.2
+    },
+    {
+      "name": "caudate",
+      "label": "Caudate nucleus",
+      "file": "models/caudate.glb",
+      "color": "#c896fa",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 14504,
+      "volume_cm3": 6.1
+    },
+    {
+      "name": "putamen",
+      "label": "Putamen",
+      "file": "models/putamen.glb",
+      "color": "#ffc85a",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 17712,
+      "volume_cm3": 9.9
+    },
+    {
+      "name": "amygdala",
+      "label": "Amygdala",
+      "file": "models/amygdala.glb",
+      "color": "#fa6e6e",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 9840,
+      "volume_cm3": 4.8
+    }
+  ]
+}

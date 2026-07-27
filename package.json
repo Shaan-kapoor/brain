@@ -1,0 +1,12 @@
+{
+  "name": "brain",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Interactive 3D model of my own brain, built from a 2023 MRI",
+  "scripts": {
+    "serve": "node scripts/serve.js"
+  },
+  "dependencies": {
+    "three": "0.180.0"
+  }
+}

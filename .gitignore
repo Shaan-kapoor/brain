@@ -1,0 +1,36 @@
+# ---------------------------------------------------------------------------
+# PHI / source medical data — NEVER commit.
+# The raw DICOM lives one level up, outside this repo, on purpose. These rules
+# are a second line of defence in case anything is ever copied in here.
+# ---------------------------------------------------------------------------
+*.dcm
+*.DCM
+DICOMDIR
+IM_*
+XX_*
+PS_*
+*.nii
+*.nii.gz
+*.bval
+*.bvec
+raw*/
+dicom/
+DICOM/
+
+# Intermediate masks and volumes (regenerate with the pipeline scripts)
+build/
+
+# Identifiable surfaces — a 3D face is biometrically re-identifiable.
+# The defaced head model (head.glb) IS committed; this is the raw one.
+web/models/head_identifiable.glb
+
+# ---------------------------------------------------------------------------
+# Tooling
+# ---------------------------------------------------------------------------
+__pycache__/
+*.pyc
+.venv/
+venv/
+node_modules/
+.DS_Store
+Thumbs.db
