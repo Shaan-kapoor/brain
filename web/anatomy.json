@@ -1,154 +1,196 @@
 {
-  "_note": "Functional summaries shown when a structure is selected. Standard neuroanatomy; see README for caveats.",
+  "_note": "Functional summaries shown when a structure is selected.",
   "hemispheres": {
     "label": "Left & right hemispheres",
+    "system": "Whole brain",
     "lines": [
       "Each hemisphere controls the opposite side of the body — your left hemisphere moves your right hand, and vice versa.",
       "In about 95% of right-handers language is handled mainly on the left (Broca's area for producing speech, Wernicke's for understanding it). The right side leans toward spatial attention, face recognition and the melody and emphasis of speech.",
       "They are joined by the corpus callosum, roughly 200 million nerve fibres carrying constant traffic between the two."
     ],
+    "fact": "Severing the corpus callosum to treat epilepsy produced the famous split-brain patients, whose hemispheres could answer the same question differently.",
     "myth": "The popular idea of \"left-brained = logical, right-brained = creative\" people is not supported by evidence. Lateralisation is real for specific functions like language, but nearly every ordinary task uses both hemispheres together, and large imaging studies find no such personality types."
   },
   "parts": {
     "brain": {
+      "system": "Cerebral cortex",
       "lines": [
         "The cerebral cortex — the folded outer sheet, only 2–4 mm thick, where conscious perception, planning, language and voluntary movement happen.",
         "The folding is a packing trick: it fits roughly three times more surface area into the skull than a smooth brain of the same size could hold.",
         "Switch on the lobe layers to see how it divides up functionally."
-      ]
+      ],
+      "fact": "Unfolded and laid flat, the cortex would cover about the area of a large pizza — roughly 2,500 cm²."
     },
     "lobe_frontal": {
+      "system": "Cerebral cortex",
       "lines": [
         "The largest lobe, sitting behind your forehead, and the seat of planning, decision-making, working memory and self-control.",
         "Its rear strip is the motor cortex, which issues the commands for every voluntary movement you make. Broca's area, on the left, assembles speech.",
         "It is also the last part of the brain to finish maturing — myelination continues into the mid-twenties, which is part of why judgement keeps improving into adulthood."
-      ]
+      ],
+      "fact": "Phineas Gage survived an iron rod through his frontal lobe in 1848 but reportedly changed personality entirely, the first strong evidence that this region governs character and restraint."
     },
     "lobe_parietal": {
+      "system": "Cerebral cortex",
       "lines": [
         "Sits on top and behind, and builds your sense of where things are — including where your own body is.",
         "Its front strip is the somatosensory cortex, carrying a distorted map of the body in which lips and fingertips take up far more space than the back or legs, because they have far more receptors.",
-        "It fuses touch, vision and balance into a single spatial picture. Damage on the right can cause people to ignore the left half of the world entirely."
-      ]
+        "It fuses touch, vision and balance into a single spatial picture."
+      ],
+      "fact": "Damage to the right parietal lobe can cause hemispatial neglect, where people eat food from only one half of the plate and are genuinely unaware the other half exists."
     },
     "lobe_temporal": {
+      "system": "Cerebral cortex",
       "lines": [
         "Runs along the side, roughly behind the ear, and handles hearing, language comprehension and recognising what you are looking at.",
         "Wernicke's area, usually on the left, extracts meaning from speech — damage leaves fluent but nonsensical output. A patch on the underside is specialised for recognising faces.",
         "It also wraps around the hippocampus and amygdala, which is why this lobe is so central to memory and emotion."
-      ]
+      ],
+      "fact": "A small patch here, the fusiform face area, is so specialised that damage to it causes prosopagnosia — an inability to recognise faces, including your own in a mirror."
     },
     "lobe_occipital": {
+      "system": "Cerebral cortex",
       "lines": [
         "The lobe at the very back of the head, and almost entirely dedicated to vision.",
         "Signals arrive from the eyes and are decomposed into edges, orientations, motion and colour before being reassembled into recognisable objects further forward.",
         "Because it is vision and little else, damage here causes blindness even though the eyes themselves work perfectly."
-      ]
+      ],
+      "fact": "Vision enters at the very back of your head — the furthest possible point from your eyes."
     },
     "lobe_cingulate": {
+      "system": "Limbic system",
       "lines": [
         "A collar of cortex curving around the corpus callosum, deep between the two hemispheres.",
         "It monitors conflict and error — the flicker of \"that's wrong\" when you catch a mistake is largely cingulate activity — and helps regulate emotion and effort.",
         "Its front section also carries the unpleasantness of pain, as distinct from the raw sensation, which the parietal lobe handles."
-      ]
+      ],
+      "fact": "Social rejection activates much the same cingulate territory as physical pain, which is why exclusion genuinely does hurt."
     },
     "lobe_insula": {
+      "system": "Cerebral cortex",
       "lines": [
         "A hidden island of cortex folded deep inside the lateral sulcus, covered over by the frontal, parietal and temporal lobes.",
         "It handles interoception — your sense of your own internal state. Hunger, nausea, a racing heart, needing the bathroom, the flush of embarrassment all register here.",
         "It also processes taste and disgust, and is consistently active when people feel empathy for someone else's pain."
-      ]
+      ],
+      "fact": "People with more accurate heartbeat perception have a measurably larger insula — it is where the body reports back to the mind."
     },
     "white_matter": {
+      "system": "Connective tissue",
       "lines": [
         "The brain's wiring: bundles of myelinated axons carrying signals between regions, beneath the grey cortex.",
         "It is white because of myelin, a fatty sheath that insulates each fibre and speeds transmission up to roughly a hundredfold.",
         "It makes up about half the brain's volume. The largest bundle, the corpus callosum, is the bridge between the two hemispheres."
-      ]
+      ],
+      "fact": "Laid end to end, the myelinated fibres in one adult brain would run for well over 100,000 kilometres."
     },
     "cerebellum": {
+      "system": "Hindbrain",
       "lines": [
         "The \"little brain\" tucked under the back of the cerebrum, which makes movement smooth, accurate and correctly timed rather than jerky.",
         "It holds more neurons than the entire rest of the brain combined — around half of all of them — packed into about a tenth of the volume.",
         "It is also where motor skills become automatic: riding a bicycle or touch-typing without thinking is largely cerebellar learning."
-      ]
+      ],
+      "fact": "Roughly 69 billion of the brain's 86 billion neurons live here, in a structure about a tenth of its volume."
     },
     "ventricles": {
+      "system": "Ventricular system",
       "lines": [
         "Fluid-filled chambers deep inside the brain, forming a connected system that produces and circulates cerebrospinal fluid.",
         "That fluid cushions the brain against impact and gives it buoyancy — it effectively weighs about 50 g while floating, instead of its true 1.4 kg.",
         "It also carries waste away. Roughly half a litre is made each day, so the whole volume is replaced several times over."
-      ]
+      ],
+      "fact": "Your brain floats. Buoyancy in cerebrospinal fluid cuts its effective weight from about 1.4 kg to around 50 g."
     },
     "brainstem": {
+      "system": "Brainstem",
       "lines": [
         "The stalk connecting brain to spinal cord, made of midbrain, pons and medulla — and the part you genuinely cannot live without.",
         "It runs breathing, heart rate, blood pressure, swallowing and the sleep–wake cycle, all without conscious involvement.",
         "Every signal travelling between your brain and your body passes through it, which is why damage here is so serious."
-      ]
+      ],
+      "fact": "It is the reason you keep breathing while asleep, and the reason brainstem death is treated as death of the person."
     },
     "thalamus": {
+      "system": "Diencephalon",
       "lines": [
         "A pair of egg-shaped hubs sitting at the centre of the brain, acting as the main relay station for information heading to the cortex.",
         "Almost all sensory input — vision, hearing, touch, taste — stops here to be sorted and routed before reaching conscious awareness. Smell is the single exception.",
         "It also gates attention and helps switch the brain between waking and sleep."
-      ]
+      ],
+      "fact": "Smell is the only sense that bypasses the thalamus, going straight to the cortex — which may be why odours trigger memory so directly."
     },
     "hippocampus": {
+      "system": "Limbic system",
       "lines": [
         "A curved, seahorse-shaped structure in the temporal lobe, and the place where new memories of events are formed.",
         "It does not store them permanently — it binds an experience together and gradually hands it to the cortex for long-term keeping, largely during sleep.",
         "It also builds your mental map of space. Its \"place cells\" fire at specific locations, which is how you navigate a familiar route without thinking."
-      ]
+      ],
+      "fact": "After both his were removed in 1953, patient H.M. could never form a new memory again — but could still learn new motor skills, proving memory is not one system."
     },
     "amygdala": {
+      "system": "Limbic system",
       "lines": [
         "Two almond-shaped clusters that assess emotional significance, especially threat, and trigger the fear response.",
         "It can react to danger before you consciously register what you saw — the flinch arrives ahead of the thought.",
         "It also stamps emotional weight onto memories, which is why frightening or joyful moments are recalled far more vividly than ordinary ones."
-      ]
+      ],
+      "fact": "A fast subcortical route reaches the amygdala in about 12 milliseconds — you jump at the snake before you know it is a stick."
     },
     "caudate": {
+      "system": "Basal ganglia",
       "lines": [
         "A long C-shaped nucleus curving around the thalamus, part of the basal ganglia.",
         "It is central to habit formation and procedural learning — turning deliberate, effortful actions into automatic routines.",
         "It also handles goal-directed behaviour and reward, and is heavily involved in motivation."
-      ]
+      ],
+      "fact": "London taxi drivers who memorise the city's streets show measurable structural change in this circuitry."
     },
     "putamen": {
+      "system": "Basal ganglia",
       "lines": [
         "A basal-ganglia structure sitting just outside the thalamus, working closely with the caudate.",
         "It regulates movement — selecting which motor programme to run and suppressing the ones you do not want.",
         "It is a key site in learning motor sequences, and is among the regions affected in Parkinson's disease."
-      ]
+      ],
+      "fact": "It helps choose which movement to make by actively silencing all the alternatives."
     },
     "pallidum": {
+      "system": "Basal ganglia",
       "lines": [
         "The globus pallidus, a pale wedge of tissue that forms the main output stage of the basal ganglia.",
         "Its job is largely inhibitory: it holds unwanted movements in check, and releases that brake when a movement is actually wanted.",
         "It is a standard target for deep brain stimulation in Parkinson's disease and dystonia, where that braking system misfires."
-      ]
+      ],
+      "fact": "An electrode placed here can stop a tremor within seconds of being switched on."
     },
     "accumbens": {
+      "system": "Basal ganglia",
       "lines": [
         "A small nucleus where the caudate and putamen meet, sitting at the heart of the brain's reward circuitry.",
         "Dopamine signals arriving here track how much better or worse an outcome was than expected — the machinery of wanting, motivation and pleasure.",
         "It is central to how habits become compulsions, and is heavily implicated in addiction."
-      ]
+      ],
+      "fact": "Dopamine here signals surprise, not pleasure — it spikes for the unexpected reward, not the one you already predicted."
     },
     "arteries": {
+      "system": "Cerebral circulation",
       "lines": [
         "The two internal carotid arteries feeding the front of the brain and the two vertebral arteries feeding the back and the brainstem.",
         "They join at the base of the brain in the circle of Willis, a loop that lets blood reroute if one vessel narrows.",
-        "The brain is about 2% of body weight but takes roughly 20% of the blood and oxygen — it has almost no reserve, which is why interruption causes damage within minutes."
-      ]
+        "The brain is about 2% of body weight but takes roughly 20% of the blood and oxygen — it has almost no reserve."
+      ],
+      "fact": "Neurons start dying within about four minutes of losing blood flow — the brain stores almost no energy of its own."
     },
     "head": {
+      "system": "Soft tissue",
       "lines": [
         "The scalp and outer soft tissue as captured by the scan, shown here with the face removed.",
         "MRI images water and fat, so bone appears black — the skull itself is essentially invisible here, which is why this is a skin surface and not a skull.",
         "It is reconstructed from two series fused together, because neither one covers the whole head on its own."
-      ]
+      ],
+      "fact": "There is no skull in this model. MRI cannot see cortical bone, which is why 3D-printed skulls always come from CT."
     }
   }
 }

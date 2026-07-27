@@ -2,25 +2,32 @@
  *
  * Geometry arrives already in glTF axes: +X = patient RIGHT, +Y = SUPERIOR,
  * +Z = POSTERIOR (see pipeline/05_export.py). Units are millimetres, recentred
- * on the brain centroid, so distances shown in the UI are real.
+ * on the brain centroid, so every measurement shown in the UI is real.
+ *
+ * Two modes. `minimal` is just the model, a centred bar and the compass.
+ * `explore` brings in a symmetric pair of panels - layers left, detail right.
+ * On phones those panels become bottom sheets and the callout docks.
  */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
 
-// Brute-force raycasting tested every triangle of every visible mesh on every
-// pointermove - 1.3 M triangles, ~43 ms per event. A BVH makes it ~0.2 ms.
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 const $ = (s) => document.querySelector(s);
 const stage = $('#stage');
+const body = document.body;
+
+const mqMobile = matchMedia('(max-width:860px), (pointer:coarse) and (max-width:1100px)');
+const isMobile = () => mqMobile.matches;
+const isTouch = matchMedia('(pointer:coarse)').matches;
 
 /* ---------------------------------------------------------------- renderer */
 const renderer = new THREE.WebGLRenderer({
-  canvas: $('#view'), antialias: true, preserveDrawingBuffer: true, alpha: true,
+  canvas: $('#view'), antialias: true, alpha: true,
 });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setClearAlpha(0);
@@ -37,9 +44,10 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.075;
 controls.rotateSpeed = 0.85;
 controls.zoomSpeed = 0.9;
-controls.minDistance = 0.6;          // fly right inside the brain
+controls.minDistance = 0.6;
 controls.maxDistance = 1600;
 controls.autoRotateSpeed = 0.34;
+controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
 
 function studioEnvironment() {
   const c = document.createElement('canvas');
@@ -77,7 +85,7 @@ scene.add(root);
 
 const parts = new Map();
 let manifest = null, anatomy = null;
-let selected = null, hoveredChip = null;
+let selected = null, hoveredChip = null, brainVolume = 1;
 let baseDist = 400;
 
 const clipPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
@@ -108,12 +116,9 @@ function makeMaterial(meta) {
     roughness: s.roughness, metalness: 0.0,
     envMapIntensity: s.env,
     transparent: false, opacity: 1,
-    // Must stay DoubleSide. Backface culling would be free performance on a
-    // consistently wound mesh, but these come from marching cubes on a
-    // non-watertight mask and their triangle winding is mixed - culling
-    // punched visible holes straight through the cortex. Do not "optimise"
-    // this to FrontSide without first making the meshes watertight and
-    // consistently oriented in the pipeline.
+    // Must stay DoubleSide. These meshes come from marching cubes on a
+    // non-watertight mask and their triangle winding is mixed - backface
+    // culling punched visible holes straight through the cortex.
     side: THREE.DoubleSide,
     clippingPlanes: [],
   };
@@ -131,10 +136,10 @@ async function boot() {
     fetch('manifest.json').then((r) => r.json()),
     fetch('anatomy.json').then((r) => r.json()),
   ]);
+  brainVolume = manifest.parts.find((p) => p.name === 'brain')?.volume_cm3 || 1;
 
-  const list = manifest.parts;
   let done = 0;
-  for (const meta of list) {
+  for (const meta of manifest.parts) {
     loadTxt.textContent = meta.label;
     await new Promise((res) => {
       loader.load(meta.file, (gltf) => {
@@ -142,18 +147,20 @@ async function boot() {
         const geom = src.geometry;
         if (!geom.attributes.normal) geom.computeVertexNormals();
         geom.computeBoundsTree();
-        const material = makeMaterial(meta);
-        const mesh = new THREE.Mesh(geom, material);
+        geom.computeBoundingBox();
+        const sz = geom.boundingBox.getSize(new THREE.Vector3());
+        meta.extent = [Math.round(sz.x), Math.round(sz.z), Math.round(sz.y)];  // W x D x H
+        const mesh = new THREE.Mesh(geom, makeMaterial(meta));
         mesh.name = meta.name;
         mesh.userData.meta = meta;
         mesh.visible = meta.defaultVisible;
         mesh.renderOrder = meta.group === 'surface' ? 10 : (meta.group === 'brain' ? 5 : 0);
         root.add(mesh);
-        parts.set(meta.name, { mesh, meta, material });
+        parts.set(meta.name, { mesh, meta, material: mesh.material });
         res();
       }, undefined, (e) => { console.warn('failed', meta.file, e); res(); });
     });
-    loadBar.style.width = `${(++done / list.length) * 100}%`;
+    loadBar.style.width = `${(++done / manifest.parts.length) * 100}%`;
   }
 
   frameAll();
@@ -173,7 +180,9 @@ function frameAll() {
   const c = sph.center, r = sph.radius;
   const fovV = THREE.MathUtils.degToRad(camera.fov);
   const fovH = 2 * Math.atan(Math.tan(fovV / 2) * camera.aspect);
-  baseDist = (r / Math.sin(Math.min(fovV, fovH) / 2)) * 1.06;
+  // Leave more room on phones: the docked callout and bar eat the lower 40%.
+  const pad = isMobile() ? 1.34 : 1.06;
+  baseDist = (r / Math.sin(Math.min(fovV, fovH) / 2)) * pad;
   controls.target.copy(c);
   camera.position.copy(c).add(
     new THREE.Vector3(-0.90, 0.20, 0.38).normalize().multiplyScalar(baseDist));
@@ -197,6 +206,28 @@ function applyIntro(now) {
   if (p >= 1) { intro = null; root.position.y = 0; root.scale.setScalar(1); applyOpacity(1); }
 }
 
+/* ------------------------------------------------------------------- modes */
+function setMode(mode) {
+  body.dataset.mode = mode;
+  $('#modeBtn').textContent = mode === 'explore' ? 'Minimal' : 'Explore';
+  $('#modeBtn').classList.toggle('on', mode === 'explore');
+  if (mode === 'minimal') body.dataset.sheet = 'none';
+  if (mode === 'explore' && selected) renderDetail(selected);
+}
+$('#modeBtn').addEventListener('click', () =>
+  setMode(body.dataset.mode === 'explore' ? 'minimal' : 'explore'));
+
+function openSheet(name) {
+  body.dataset.sheet = body.dataset.sheet === name ? 'none' : name;
+}
+$('#sheetBtn').addEventListener('click', () => {
+  if (body.dataset.mode !== 'explore') setMode('explore');
+  openSheet('layers');
+});
+// tapping the grip closes the sheet
+document.querySelectorAll('.sheet-grip').forEach((g) =>
+  g.addEventListener('click', () => { body.dataset.sheet = 'none'; }));
+
 /* ----------------------------------------------------------------- layer UI */
 const GROUPS = [
   ['brain', 'Whole brain'],
@@ -206,13 +237,11 @@ const GROUPS = [
   ['surface', 'Outer surface'],
 ];
 
-// Named scenes. Toggling seventeen chips by hand to get a sensible view is
-// tedious, and most of the useful combinations are predictable.
 const PRESETS = {
   surface: (m) => m.group === 'brain' || m.group === 'vessels',
   lobes: (m) => m.group === 'cortex',
-  // White matter is excluded here on purpose: it is a large opaque shell that
-  // wraps the nuclei this view exists to show. It stays available as a chip.
+  // White matter is excluded on purpose: it is a large opaque shell wrapping
+  // the very nuclei this view exists to show. It stays available as a chip.
   deep: (m) => m.group === 'deep' && m.name !== 'white_matter',
   vessels: (m) => m.group === 'vessels' || m.name === 'brain',
   all: () => true,
@@ -241,8 +270,10 @@ function buildLayerUI() {
       chip.innerHTML = `<i></i><span>${meta.short || meta.label}</span>`;
       chip.addEventListener('click', () => setVisible(meta.name, !rec.mesh.visible));
       chip.addEventListener('dblclick', (e) => { e.preventDefault(); solo(meta.name); });
-      chip.addEventListener('pointerenter', () => setChipHover(meta.name));
-      chip.addEventListener('pointerleave', () => setChipHover(null));
+      if (!isTouch) {
+        chip.addEventListener('pointerenter', () => setChipHover(meta.name));
+        chip.addEventListener('pointerleave', () => setChipHover(null));
+      }
       chips.appendChild(chip);
     }
     wrap.appendChild(chips);
@@ -256,9 +287,7 @@ function setVisible(name, on) {
   if (!rec) return;
   rec.mesh.visible = on;
   if (!on && selected?.name === name) select(null);
-  invalidatePickList();
-  autoTransparency();
-  syncChips();
+  invalidatePickList(); autoTransparency(); syncChips();
 }
 
 function solo(name) {
@@ -270,7 +299,6 @@ function applyPreset(key) {
   const fn = PRESETS[key];
   if (!fn) return;
   for (const { mesh, meta } of parts.values()) mesh.visible = !!fn(meta);
-  // "Deep" is unreadable behind an opaque cortex, so open it up automatically.
   if (key === 'deep' || key === 'all') $('#opbrain').value = 22;
   if (key === 'surface' || key === 'lobes') $('#opbrain').value = 100;
   applyOpacity();
@@ -306,18 +334,14 @@ function applyOpacity(scale = 1) {
     if (meta.name === 'brain') o = b;
     else if (meta.name === 'head') o = h;
     material.opacity = o * scale;
-    // Flagging a material transparent puts it in the sorted blend pass and
-    // gives up early-Z. Only opt in when the surface is actually see-through.
+    // Flagging transparent puts a material in the sorted blend pass and gives
+    // up early-Z; only opt in when the surface is actually see-through.
     const wantTransparent = material.opacity < 0.995;
     if (material.transparent !== wantTransparent) {
       material.transparent = wantTransparent;
       material.needsUpdate = true;
     }
     material.depthWrite = !wantTransparent;
-
-    // A clearcoat highlight and a sheen lobe are invisible through a surface
-    // you can already see straight through, but still cost a second specular
-    // evaluation per fragment. Drop them once the shell goes faint.
     if (material.isMeshPhysicalMaterial) {
       const s = SURFACE[meta.group] || SURFACE.deep;
       const faint = material.opacity < 0.5;
@@ -337,12 +361,11 @@ function autoTransparency() {
     (p) => (p.meta.group === 'deep' || p.meta.group === 'cortex') && p.mesh.visible);
   const brain = parts.get('brain');
   if (anyInside && brain && brain.mesh.visible && +$('#opbrain').value > 60) {
-    $('#opbrain').value = 22;
-    applyOpacity();
+    $('#opbrain').value = 22; applyOpacity();
   }
 }
 
-/* -------------------------------------------------------------- selection */
+/* -------------------------------------------------------------- picking */
 const ray = new THREE.Raycaster();
 const ptr = new THREE.Vector2();
 const tip = $('#hovertip');
@@ -362,11 +385,10 @@ function pick(ev) {
   return ray.intersectObjects(pickable(), false)[0] || null;
 }
 
-// Pointermove fires faster than the display refreshes, so the raycast is
-// coalesced to one per frame and skipped mid-drag.
 let hoverEv = null, dragging = false;
-renderer.domElement.addEventListener('pointermove', (ev) => { hoverEv = ev; });
-
+if (!isTouch) {
+  renderer.domElement.addEventListener('pointermove', (ev) => { hoverEv = ev; });
+}
 function processHover() {
   if (!hoverEv || dragging) return;
   const ev = hoverEv; hoverEv = null;
@@ -392,7 +414,7 @@ renderer.domElement.addEventListener('pointerup', (ev) => {
   if (!downAt) return;
   const moved = Math.hypot(ev.clientX - downAt[0], ev.clientY - downAt[1]);
   downAt = null;
-  if (moved > 4) return;
+  if (moved > 6) return;
   const hit = pick(ev);
   select(hit ? hit.object.userData.meta : null, hit);
 });
@@ -419,11 +441,15 @@ function showCard(anchor, html) {
   const dot = new THREE.Mesh(anchorGeo, anchorMat);
   dot.position.copy(calloutAnchor); dot.renderOrder = 999;
   calloutGroup.add(dot);
-  leaderLine = new THREE.Line(
-    new THREE.BufferGeometry().setFromPoints([calloutAnchor.clone(), calloutAnchor.clone()]),
-    leaderMat);
-  leaderLine.renderOrder = 999; leaderLine.frustumCulled = false;
-  calloutGroup.add(leaderLine);
+  // The docked mobile card has no fixed screen relationship to the anchor,
+  // so the leader would just be a line to nowhere. Dot only there.
+  if (!isMobile()) {
+    leaderLine = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([calloutAnchor.clone(), calloutAnchor.clone()]),
+      leaderMat);
+    leaderLine.renderOrder = 999; leaderLine.frustumCulled = false;
+    calloutGroup.add(leaderLine);
+  }
   const card = document.createElement('div');
   card.className = 'callout';
   card.innerHTML = html;
@@ -434,49 +460,107 @@ const tmpV = new THREE.Vector3(), tmpE = new THREE.Vector3();
 
 function updateCallout() {
   const card = $('#calloutlayer').firstElementChild;
-  if (!card || !calloutAnchor || !leaderLine) return;
+  if (!card || !calloutAnchor) return;
   const w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight;
   tmpV.copy(calloutAnchor).project(camera);
-  if (tmpV.z > 1) { card.style.display = 'none'; leaderLine.visible = false; return; }
-  card.style.display = ''; leaderLine.visible = true;
+  const behind = tmpV.z > 1;
+  if (leaderLine) leaderLine.visible = !behind;
+  if (isMobile()) return;                     // card is docked; nothing to place
+  if (behind) { card.style.display = 'none'; return; }
+  card.style.display = '';
 
   const sx = (tmpV.x * 0.5 + 0.5) * w, sy = (-tmpV.y * 0.5 + 0.5) * h;
-  const cw = card.offsetWidth || 268, ch = card.offsetHeight || 150;
+  const cw = card.offsetWidth || 252, ch = card.offsetHeight || 150;
 
   // Route the leader out sideways in SCREEN space. Offsetting along the
   // surface normal collapses to zero length whenever the normal faces camera.
+  // In explore mode keep clear of the two panels.
+  const inset = body.dataset.mode === 'explore' ? 300 : 20;
   const side = sx < w / 2 ? -1 : 1;
-  let ex = Math.max(cw / 2 + 24, Math.min(sx + side * 132, w - cw / 2 - 24));
-  let ey = Math.max(ch / 2 + 80, Math.min(sy - 74, h - ch / 2 - 80));
+  let ex = Math.max(inset + cw / 2, Math.min(sx + side * 132, w - inset - cw / 2));
+  let ey = Math.max(ch / 2 + 80, Math.min(sy - 60, h - ch / 2 - 96));
 
-  tmpE.set((ex / w) * 2 - 1, -(ey / h) * 2 + 1, tmpV.z).unproject(camera);
-  const pos = leaderLine.geometry.attributes.position;
-  pos.setXYZ(0, calloutAnchor.x, calloutAnchor.y, calloutAnchor.z);
-  pos.setXYZ(1, tmpE.x, tmpE.y, tmpE.z);
-  pos.needsUpdate = true;
-  leaderLine.geometry.computeBoundingSphere();
-
-  card.style.left = `${ex - cw / 2 + side * (cw / 2 + 10)}px`;
+  if (leaderLine) {
+    tmpE.set((ex / w) * 2 - 1, -(ey / h) * 2 + 1, tmpV.z).unproject(camera);
+    const pos = leaderLine.geometry.attributes.position;
+    pos.setXYZ(0, calloutAnchor.x, calloutAnchor.y, calloutAnchor.z);
+    pos.setXYZ(1, tmpE.x, tmpE.y, tmpE.z);
+    pos.needsUpdate = true;
+    leaderLine.geometry.computeBoundingSphere();
+  }
+  card.style.left = `${ex - cw / 2}px`;
   card.style.top = `${ey}px`;
+}
+
+/* -------------------------------------------------------------- selection */
+function statBlock(meta, compact = false) {
+  const pct = (meta.volume_cm3 / brainVolume) * 100;
+  const ext = meta.extent ? `${meta.extent[0]}×${meta.extent[1]}×${meta.extent[2]}` : '—';
+  const cells = [
+    `<div><dt>Volume</dt><dd>${meta.volume_cm3}<small>cm³</small></dd></div>`,
+    `<div><dt>Of brain</dt><dd>${pct < 1 ? pct.toFixed(1) : Math.round(pct)}<small>%</small></dd></div>`,
+  ];
+  if (!compact) cells.push(
+    `<div><dt>Extent</dt><dd style="font-size:11.5px">${ext}<small>mm</small></dd></div>`,
+    `<div><dt>Triangles</dt><dd style="font-size:11.5px">${(meta.triangles / 1000).toFixed(0)}<small>k</small></dd></div>`);
+  return `<dl class="d-stats">${cells.join('')}</dl>`;
+}
+
+function renderDetail(meta) {
+  const host = $('#detailbody');
+  if (!meta) {
+    host.innerHTML = `<div class="detail-empty"><div class="pulse"></div>
+      <p>Select a structure to see what it is, what it does and how big it is.</p></div>`;
+    return;
+  }
+  const info = anatomy.parts[meta.name] || {};
+  host.innerHTML =
+    `<div class="d-head" style="--c:${meta.color}">
+       <span class="d-tag">${info.system || meta.group}</span>
+       <h3 class="d-name">${meta.label}</h3>
+     </div>
+     ${statBlock(meta)}
+     <div class="d-lines">${(info.lines || []).map((l) => `<p>${l}</p>`).join('')}</div>
+     ${info.fact ? `<div class="d-fact"><b>Worth knowing</b><span>${info.fact}</span></div>` : ''}`;
 }
 
 function select(meta, hit = null) {
   selected = meta;
   setChipHover(hoveredChip);
+  renderDetail(meta);
   if (!meta || !hit) { clearCallout(); return; }
-  const info = anatomy.parts[meta.name];
-  const body = info ? info.lines.map((l) => `<p>${l}</p>`).join('')
-                    : '<p>No description for this structure yet.</p>';
-  showCard(hit.point,
-    `<h3>${meta.label}<em>${meta.volume_cm3} cm³</em></h3>${body}`);
+  const info = anatomy.parts[meta.name] || {};
+  const head = `<h3>${meta.label}<em>${meta.volume_cm3} cm³</em></h3>`;
+  let bodyHtml;
+  if (isMobile()) {
+    // The card is the only detail surface on a phone, so it carries everything.
+    bodyHtml = (info.lines || []).map((l) => `<p>${l}</p>`).join('')
+      + statBlock(meta, true)
+      + (info.fact ? `<div class="d-fact"><b>Worth knowing</b><span>${info.fact}</span></div>` : '');
+  } else if (body.dataset.mode === 'explore') {
+    // The right-hand panel already has the full text; repeating it here just
+    // covers the model. The card shrinks to a label on the end of the leader.
+    bodyHtml = `<div class="more">${info.system || meta.group} — detail at right</div>`;
+  } else {
+    bodyHtml = (info.lines || []).map((l) => `<p>${l}</p>`).join('')
+      + '<div class="more">Explore mode → stats &amp; more</div>';
+  }
+  showCard(hit.point, head + bodyHtml);
 }
 
 $('#hemi').addEventListener('click', () => {
   const h = anatomy.hemispheres;
   selected = null; setChipHover(null);
-  showCard(controls.target,
-    `<h3>${h.label}</h3>` + h.lines.map((l) => `<p>${l}</p>`).join('') +
-    `<div class="myth"><b>Common myth.</b> ${h.myth}</div>`);
+  $('#detailbody').innerHTML =
+    `<div class="d-head" style="--c:#4cc9e0">
+       <span class="d-tag">${h.system}</span>
+       <h3 class="d-name">${h.label}</h3>
+     </div>
+     <div class="d-lines">${h.lines.map((l) => `<p>${l}</p>`).join('')}</div>
+     <div class="d-fact"><b>Worth knowing</b><span>${h.fact}</span></div>
+     <div class="d-myth"><b>Common myth</b><span>${h.myth}</span></div>`;
+  clearCallout();
+  if (isMobile()) body.dataset.sheet = 'detail';
 });
 
 /* ------------------------------------------------------------ cross-section */
@@ -509,15 +593,8 @@ $('#views').addEventListener('click', (e) => {
   camera.position.copy(controls.target).add(new THREE.Vector3(...VIEWS[v]).multiplyScalar(d));
   controls.update();
 });
-$('#reset').addEventListener('click', () => {
+$('#resetBtn').addEventListener('click', () => {
   camera.up.set(0, 1, 0); clearCallout(); select(null); frameAll();
-});
-$('#shot').addEventListener('click', () => {
-  renderer.render(scene, camera);
-  const a = document.createElement('a');
-  a.href = renderer.domElement.toDataURL('image/png');
-  a.download = `brain-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '')}.png`;
-  a.click();
 });
 
 /* ------------------------------------------------------- orientation gnomon */
@@ -584,6 +661,7 @@ function resize() {
   camera.updateProjectionMatrix();
 }
 addEventListener('resize', resize);
+mqMobile.addEventListener('change', () => { resize(); frameAll(); });
 resize();
 
 renderer.setAnimationLoop(() => {
@@ -598,7 +676,10 @@ renderer.setAnimationLoop(() => {
   renderer.render(scene, camera);
 });
 
-addEventListener('keydown', (e) => { if (e.key === 'Escape') select(null); });
+addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { select(null); body.dataset.sheet = 'none'; }
+  if (e.key.toLowerCase() === 'e') setMode(body.dataset.mode === 'explore' ? 'minimal' : 'explore');
+});
 
 window.__viewer = { renderer, scene, camera, controls, parts, THREE,
                     stats: () => ({ frameAvg, resScale: STEPS[prStep] }) };

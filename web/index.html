@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07090b">
 <title>Shaan's Brain</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🧠</text></svg>">
 <link rel="stylesheet" href="css/app.css">
@@ -16,7 +17,7 @@
 }
 </script>
 </head>
-<body>
+<body data-mode="minimal" data-sheet="none">
 
 <div id="stage">
   <canvas id="view"></canvas>
@@ -30,51 +31,78 @@
   <span>reconstructing</span>
 </div>
 
-<header id="titlebar" class="rise" style="--d:.15s">
+<header id="titlebar">
   <h1>SHAAN'S BRAIN</h1>
+  <p id="subtitle">tap anything to learn about it</p>
 </header>
 
-<aside id="layers" class="panel rise" style="--d:.3s">
-  <h2>Views</h2>
-  <div class="presets" id="presets">
-    <button data-preset="surface">Whole brain</button>
-    <button data-preset="lobes">Lobes</button>
-    <button data-preset="deep">Deep</button>
-    <button data-preset="vessels">Vessels</button>
-    <button data-preset="all">Everything</button>
-    <button data-preset="none">Clear</button>
-  </div>
-
-  <div id="layerlist"></div>
-
-  <h2>Opacity</h2>
-  <div class="row"><span class="mini">brain</span><input type="range" id="opbrain" min="4" max="100" value="100"></div>
-  <div class="row"><span class="mini">head</span><input type="range" id="ophead" min="4" max="100" value="28"></div>
-
-  <h2>Cross-section</h2>
-  <div class="row">
-    <div class="seg" id="clipaxis">
-      <button data-axis="off" class="on">off</button>
-      <button data-axis="x">sag</button>
-      <button data-axis="y">ax</button>
-      <button data-axis="z">cor</button>
+<!-- ---------------------------------------------------------- left: layers -->
+<aside id="layers" class="panel">
+  <div class="sheet-grip"></div>
+  <div class="panel-scroll">
+    <h2>Views</h2>
+    <div class="presets" id="presets">
+      <button data-preset="surface">Whole brain</button>
+      <button data-preset="lobes">Lobes</button>
+      <button data-preset="deep">Deep</button>
+      <button data-preset="vessels">Vessels</button>
+      <button data-preset="all">Everything</button>
+      <button data-preset="none">Clear</button>
     </div>
-  </div>
-  <div class="row">
-    <input type="range" id="clippos" min="-100" max="100" value="0" step="0.5" disabled>
-    <label class="chk" title="flip which side is cut away"><input type="checkbox" id="clipflip"></label>
+
+    <div id="layerlist"></div>
+
+    <h2>Opacity</h2>
+    <div class="row"><span class="mini">brain</span><input type="range" id="opbrain" min="4" max="100" value="100"></div>
+    <div class="row"><span class="mini">head</span><input type="range" id="ophead" min="4" max="100" value="28"></div>
+
+    <h2>Cross-section</h2>
+    <div class="row">
+      <div class="seg" id="clipaxis">
+        <button data-axis="off" class="on">off</button>
+        <button data-axis="x">sag</button>
+        <button data-axis="y">ax</button>
+        <button data-axis="z">cor</button>
+      </div>
+    </div>
+    <div class="row">
+      <input type="range" id="clippos" min="-100" max="100" value="0" step="0.5" disabled>
+      <label class="chk" title="flip which side is cut away"><input type="checkbox" id="clipflip"></label>
+    </div>
+
+    <h2>Topics</h2>
+    <button id="hemi" class="topic">
+      <span>Left &amp; right brain</span><i>→</i>
+    </button>
   </div>
 </aside>
 
-<footer id="tools" class="rise" style="--d:.5s">
-  <div class="seg" id="views">
-    <button data-view="L">L</button><button data-view="R">R</button>
-    <button data-view="A">A</button><button data-view="P">P</button>
-    <button data-view="S">S</button><button data-view="I">I</button>
+<!-- ---------------------------------------------------------- right: detail -->
+<aside id="detail" class="panel">
+  <div class="sheet-grip"></div>
+  <div class="panel-scroll" id="detailbody">
+    <div class="detail-empty">
+      <div class="pulse"></div>
+      <p>Select a structure to see what it is, what it does and how big it is.</p>
+    </div>
   </div>
-  <button id="hemi" class="btn ghost">L / R brain</button>
-  <button id="reset" class="btn ghost">reset</button>
-  <button id="shot" class="btn ghost">capture</button>
+</aside>
+
+<!-- ------------------------------------------------------------- bottom bar -->
+<footer id="tools">
+  <div class="seg" id="views">
+    <button data-view="L" title="left">L</button>
+    <button data-view="R" title="right">R</button>
+    <button data-view="A" title="front">A</button>
+    <button data-view="P" title="back">P</button>
+    <button data-view="S" title="top">S</button>
+    <button data-view="I" title="bottom">I</button>
+  </div>
+  <button id="sheetBtn" class="btn ghost mobile-only">Layers</button>
+  <button id="modeBtn" class="btn">Explore</button>
+  <button id="resetBtn" class="btn ghost" title="reset view">
+    <span class="lbl">Reset</span><span class="ico">↺</span>
+  </button>
 </footer>
 
 <div id="orient"></div>
