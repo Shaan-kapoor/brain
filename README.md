@@ -1,31 +1,34 @@
 # Shaan's Brain
 
-An interactive 3D reconstruction of my own brain, built from a diagnostic MRI
-I had taken on 7 October 2023, and a viewer for exploring it in the browser.
+I had an MRI in October 2023. Two years later I found the disc in a drawer,
+got curious about whether there was a real 3D model hiding inside those files,
+and went looking.
 
-![The viewer in minimal mode](docs/ui/ui-minimal.png)
+There was.
+
+![Rotating tour of the model](docs/gif/tour.gif)
 
 Twenty separately selectable structures covering 95.4% of the brain by volume.
-Click any of them and it tells you what it is, what it does and how big it is.
+Click any of them and it tells you what it is, what it does, and how big it is.
 
 ---
 
 ## Contents
 
 - [What I started with](#what-i-started-with)
-- [Choosing a series](#step-1--choosing-a-series)
+- [Finding a series that could actually work](#step-1--finding-a-series-that-could-actually-work)
 - [Getting a brain out of it](#step-2--getting-a-brain-out-of-it)
-- [Carving the sulci back open](#step-3--carving-the-sulci-back-open)
-- [The arterial tree](#step-4--the-arterial-tree)
-- [Two studies, two coordinate frames](#step-5--two-studies-two-coordinate-frames)
+- [Carving the folds back open](#step-3--carving-the-folds-back-open)
+- [The arteries](#step-4--the-arteries)
+- [Two scans, two coordinate systems](#step-5--two-scans-two-coordinate-systems)
 - [The head](#step-6--the-head)
 - [Naming every part](#step-7--naming-every-part)
-- [Baking the light in](#step-8--baking-the-light-in)
+- [Faking the light properly](#step-8--faking-the-light-properly)
 - [The viewer](#the-viewer)
-- [Performance](#performance)
-- [Problems I hit](#problems-i-hit)
-- [Running it](#running-it)
-- [What the numbers mean](#what-the-numbers-mean)
+- [Making it fast](#making-it-fast)
+- [Everything that went wrong](#everything-that-went-wrong)
+- [Running it yourself](#running-it-yourself)
+- [What the numbers actually mean](#what-the-numbers-actually-mean)
 
 ---
 
@@ -33,215 +36,222 @@ Click any of them and it tells you what it is, what it does and how big it is.
 
 A Philips Achieva 1.5 T scanner produced two studies on the same morning:
 
-| Time | Study | Contents |
+| Time | Study | What's in it |
 |---|---|---|
-| 09:11 | C-SPINE | Cervical spine sagittals and axials, coronal STIR, **and a 3D time-of-flight angiogram of the neck** |
-| 12:16 | BRAIN | FLAIR, DWI at two b-values, T1 sagittal and axial, T2, **SWI** |
+| 09:11 | C-SPINE | Neck spine images, plus a 3D angiogram of the arteries in my neck |
+| 12:16 | BRAIN | FLAIR, diffusion, T1, T2, and SWI |
 
-2,430 DICOM files across 72 series. I converted them with `dcm2niix` and worked
-from the NIfTI output throughout.
+2,430 DICOM files across 72 series. I converted everything with `dcm2niix` and
+worked from the NIfTI output.
 
-The important thing about a clinical brain protocol is what it *doesn't*
-contain: there is no 3D T1 MPRAGE. Almost every brain reconstruction tutorial
-online assumes one — 1 mm isotropic, 180+ slices — because that is what
-FreeSurfer and the rest of the neuroimaging stack are built around. Clinical
-protocols skip it, because radiologists read slices, not volumes. Every brain
-series in my scan is **5 mm thick with a 0.5 mm gap**. Thirty slices for a
-whole head.
+Here is the thing nobody tells you before you start: a clinical brain scan is
+not built for this. Every tutorial you find online assumes a 3D T1 MPRAGE,
+1 mm isotropic, 180+ slices, because that is what FreeSurfer and the rest of
+the neuroimaging world runs on. Hospitals skip it. Radiologists read slices,
+not volumes, so they order thick slices that look sharp on screen.
 
-You cannot make a surface out of that. So the first real problem was finding
-anything in the scan that was three-dimensional at all.
+Every brain series in my scan is **5 mm thick with a 0.5 mm gap**. Thirty
+slices for an entire head. You cannot build a surface from that. It is like
+trying to sculpt someone's face from thirty photographs taken 5 mm apart.
 
-## Step 1 — Choosing a series
+So before anything else, I had to find out whether the scan contained anything
+three-dimensional at all.
 
-I went through every series and computed its actual voxel geometry rather than
-trusting the descriptions. Two things stood out:
+## Step 1 : Finding a series that could actually work
 
-| Series | In-plane | Slice | Slices | Notes |
+I ignored the series descriptions and measured the real voxel geometry of every
+one of them. Two jumped out.
+
+| Series | In-plane | Slice thickness | Slices | Verdict |
 |---|---|---|---|---|
-| FLAIR, T1, T2 | 0.24–0.44 mm | **5.0 mm** | 30 | beautiful in-plane, useless through-plane |
+| FLAIR, T1, T2 | 0.24 to 0.44 mm | **5.0 mm** | 30 | gorgeous in-plane, useless in depth |
 | **SWI / VEN_BOLD** | 0.60 mm | **1.5 mm** | **101** | the only near-3D brain volume |
-| **s3DI_MC (TOF MRA)** | 0.34 mm | **0.75 mm** | **276** | highest-resolution volume in the dataset |
+| **s3DI_MC (angiogram)** | 0.34 mm | **0.75 mm** | **276** | sharpest volume in the whole dataset |
 
-The susceptibility-weighted series is the only reason any of this works. It is
-acquired as a thin-slice 3D gradient echo for detecting microbleeds, and nobody
-intends it as an anatomical volume, but at 0.6 × 0.6 × 1.5 mm it is the one
-brain series with enough through-plane resolution to mesh.
+The susceptibility-weighted series is the reason this project exists at all.
+It gets acquired as a thin-slice 3D gradient echo to look for microbleeds.
+Nobody intends it as an anatomical volume. But at 0.6 x 0.6 x 1.5 mm it was
+the one brain series with enough depth resolution to mesh, and it was sitting
+there the whole time.
 
-The angiogram is even better resolved, but time-of-flight suppresses everything
-that isn't moving, so it only contains blood.
+The angiogram is even sharper, but time-of-flight imaging deliberately
+suppresses everything that isn't moving, so it contains blood and almost
+nothing else.
 
-## Step 2 — Getting a brain out of it
+## Step 2 : Getting a brain out of it
 
-I expected to need a neural network for brain extraction. I didn't, and the
-reason is a quirk of the contrast: on SWI the skull is a dark shell that
-already separates brain from scalp. So a multi-Otsu threshold, then morphology,
-gets most of the way there.
+I assumed I would need a neural network for brain extraction, and started
+looking at which one to install. I didn't need one, because of a lucky quirk of
+the contrast: on SWI the skull is a dark shell that already separates brain
+from scalp. A threshold plus some morphology gets most of the way.
 
-The pipeline in `pipeline/01_brain.py`:
+What `pipeline/01_brain.py` does:
 
-1. Resample to 0.8 mm isotropic. Marching cubes on an anisotropic grid produces
-   visible terracing along the thick axis; resampling first is what removes it.
-2. Multi-Otsu with four classes. The second boundary separates brain tissue from
-   CSF and bone.
-3. **Erode hard** with a 4-voxel ball, then keep the largest connected
-   component. The erosion severs the few remaining bridges through the orbits
-   and skull base; the largest surviving blob is unambiguously the brain.
-4. **Dilate back** into the thresholded tissue, but bounded — `binary_dilation`
-   with `mask=raw` so it can regrow into real tissue but cannot flood through
-   the skull into the scalp.
-5. Close and fill holes.
+1. Resample to 0.8 mm isotropic. Marching cubes on an uneven grid produces
+   visible terracing along the thick axis, and resampling first is what kills
+   it.
+2. Multi-Otsu with four classes. The second boundary separates brain tissue
+   from CSF and bone.
+3. **Erode hard**, then keep only the largest connected blob. The erosion snaps
+   the few remaining bridges through the eye sockets and skull base, and
+   whatever survives is unambiguously the brain.
+4. **Grow it back** into the thresholded tissue, but bounded, so it can reclaim
+   real tissue without flooding through the skull into the scalp.
+5. Close and fill.
 
-![Brain mask overlaid on the SWI slices](docs/pipeline/seg-brain-overlay.png)
+![Brain mask drawn over the SWI slices](docs/pipeline/seg-brain-overlay.png)
 
-Blue is the closed envelope, red is the final surface. The contour tracks the
-brain tightly through the temporal lobes and cerebellum, which is where
-threshold methods usually fail.
+Blue is the smooth envelope, red is the final surface. The contour hugs the
+temporal lobes and cerebellum, which is exactly where threshold methods usually
+fall apart, so this was the first sign it was going to work.
 
-The result came out at **1348 cm³** for the envelope — a plausible adult brain
-volume, which was the first sign the approach was sound.
+The envelope came out at 1348 cm³, a completely plausible adult brain. That was
+the moment I believed the whole thing was possible.
 
-## Step 3 — Carving the sulci back open
+## Step 3 : Carving the folds back open
 
-The envelope from step 2 is a smooth bag. It bridges over every sulcus, so the
-mesh looked like a peeled potato — recognisably a brain, but bald.
+The mask from step 2 is a smooth bag. It bridges straight over every fold, so
+the first mesh looked like a peeled potato. Recognisably a brain. Completely
+bald.
 
-The fix exploits the same contrast again: **CSF is dark on SWI**, and every
-sulcus is full of CSF. So re-thresholding *inside* the envelope carves the
-folds back open.
+The fix uses the same contrast trick a second time. **CSF is dark on SWI**, and
+every sulcus is full of CSF, so re-thresholding *inside* the envelope carves
+the folds back open.
 
-Picking the threshold mattered. I swept it and looked at each result:
+Picking that threshold mattered more than I expected, so I swept it and looked
+at every result:
 
-| Cut | Volume | Result |
+| Cut | Volume | What it looked like |
 |---|---|---|
 | p8 | 1241 cm³ | still bald |
-| p10 | 1214 cm³ | faint relief |
-| **p13** | **1173 cm³** | **real gyri, surface intact** |
-| p16 | 1132 cm³ | good relief, cortex thinning |
-| p20 | 1078 cm³ | breaking into disconnected crumbs |
+| p10 | 1214 cm³ | a hint of texture |
+| **p13** | **1173 cm³** | **real gyri, surface still intact** |
+| p16 | 1132 cm³ | good relief, cortex getting thin |
+| p20 | 1078 cm³ | falling apart into crumbs |
 
-I settled on the 13th percentile of intensity inside the envelope — expressed
-as a percentile rather than a fixed number so it adapts to scan brightness.
+I settled on the 13th percentile of intensity inside the envelope, expressed as
+a percentile rather than a fixed number so it adapts to how bright the scan is.
 
 ![The cortical surface](docs/pipeline/seg-brain-mesh.png)
 
-One thing that cost me an hour: I originally followed the threshold with
-`binary_closing` and `fill_holes` out of habit. Both of them reseal the sulci
-the threshold has just opened, and the volume barely changed — 2.61 M voxels
-against 2.63 M. The mask looked right in every summary statistic and completely
-wrong in the render. There is a comment in the code now saying not to add them
+One detail cost me an hour. Out of pure habit I followed the threshold with
+`binary_closing` and `fill_holes`. Both of them reseal the exact folds the
+threshold just opened. The volume barely moved, 2.61 M voxels against 2.63 M,
+so every number I was printing looked fine while the render was obviously
+wrong. There is a comment in the code now telling future me not to put them
 back.
 
-## Step 4 — The arterial tree
+## Step 4 : The arteries
 
-Time-of-flight angiography makes flowing blood far brighter than stationary
-tissue, so a high percentile threshold gets the arteries immediately. It also
-gets subcutaneous fat, which is just as bright.
+Time-of-flight angiography makes flowing blood far brighter than everything
+around it, so a high threshold finds the arteries immediately. It also finds
+subcutaneous fat, which is just as bright, and there is a lot of fat in a neck.
 
-![First attempt: arteries plus a lot of fat](docs/pipeline/seg-arteries-overlay.png)
+![First attempt, arteries buried in fat](docs/pipeline/seg-arteries-overlay.png)
 
-The small bright dots deep in the neck are the real arteries. Everything
-tracing the outline of the neck is fat. Three filters separate them, in
-`pipeline/02_arteries.py`:
+The small bright dots deep in the middle are the real arteries. Everything
+tracing the outline of the neck is fat. Three filters separate them:
 
-**Depth under the skin.** Fat sits in a shallow rim; the carotids and
-vertebrals run 25–40 mm deep. I build a solid body silhouette and compute a
-distance transform from the air, then require 14 mm of depth.
+**How deep it sits.** Fat lives in a shallow rim just under the skin. The
+carotids and vertebrals run 25 to 40 mm deep. So I build a solid silhouette of
+the neck, compute distance from the outside air, and demand at least 14 mm.
 
-This one took two attempts. My first body mask was a plain tissue threshold,
-which is speckled — muscle and bone fall below the cut and leave dark channels
-running out to the air, which destroys the distance transform. Only 1.7 M of
-19 M voxels came back as "deep", and the filter deleted the arteries along with
-the fat. Smoothing hard *before* thresholding makes the interior solid and
-fixes it.
+This took two attempts. My first silhouette was a plain tissue threshold, which
+comes out speckled, because muscle and bone fall below the cut and leave dark
+channels running all the way out to the air. That wrecks the distance
+transform: only 1.7 M of 19 M voxels came back as "deep", and the filter
+cheerfully deleted the arteries along with the fat. Blurring hard *before*
+thresholding makes the interior solid and fixes it.
 
-![The depth filter working](docs/pipeline/seg-depth-filter.png)
+![The depth filter working properly](docs/pipeline/seg-depth-filter.png)
 
-**Elongation.** PCA on each component's voxel cloud: a tube puts nearly all its
-variance on one axis.
+**How elongated it is.** Run PCA on each blob's voxel cloud. A tube puts nearly
+all of its variance on one axis.
 
-**Flatness.** A slab of fat is elongated too, just along *two* axes. Requiring
-the second principal axis to be under 16% of the first is what finally removed
-the last stubborn clumps.
+**How flat it is.** This one caught me out. A slab of fat is elongated too, just
+along *two* axes instead of one, so it sails through the elongation test.
+Demanding that the second principal axis be under 16% of the first is what
+finally cleared out the last stubborn clumps.
 
 ![The clean arterial tree](docs/pipeline/seg-arteries-mesh.png)
 
-Both common carotids with their bifurcations into internal and external
-branches, both carotid siphons curving at the skull base, and both vertebral
-arteries. 10.2 cm³ of vessel.
+Both carotids with their bifurcations, both carotid siphons curling at the base
+of the skull, both vertebral arteries. 10.2 cm³ of vessel, and genuinely my
+favourite object in the whole project.
 
-## Step 5 — Two studies, two coordinate frames
+## Step 5 : Two scans, two coordinate systems
 
-The brain comes from the 12:16 study and the arteries from the 09:11 study.
-Three hours apart means I got off the table and was repositioned, so identical
-scanner coordinates do **not** mean identical anatomy. Rendered together in raw
-scanner space, the carotid siphons floated centimetres from the skull base they
-are supposed to hug.
+The brain comes from the 12:16 study and the arteries from the 09:11 one. Three
+hours apart means I got off the table and was repositioned, so identical
+scanner coordinates absolutely do not mean identical anatomy. Rendered together
+in raw scanner space, my carotid siphons floated a couple of centimetres away
+from the skull base they are supposed to hug.
 
 `pipeline/02b_align_arteries.py` rigidly registers the angiogram onto the SWI
 with ANTs, restricted to the slab where the two overlap so the non-shared neck
-and vertex can't drag the fit off.
+and vertex can't drag the fit off course.
 
-The second problem was the output grid. Warping straight into the SWI grid
-cropped the carotids at the edge of the head field of view and threw away most
-of their length — 58 k voxels down to 14 k. I now build a union grid: SWI
-orientation, so the arteries land in the brain's anatomical frame, but extended
-to cover the angiogram's full reach down the neck.
+Then a second problem appeared. Warping straight into the SWI grid cropped the
+carotids at the edge of the head field of view and threw away most of their
+length, 58 k voxels down to 14 k. So the output now goes into a union grid:
+SWI orientation, so the arteries land in the brain's frame, but extended far
+enough down to keep the whole neck.
 
 ![Arteries registered onto the brain](docs/pipeline/seg-registration.png)
 
-## Step 6 — The head
+## Step 6 : The head
 
 Neither series covers a whole head. The SWI is 233 mm wide but its field of
-view cuts straight through the face. The sagittal T1 has the entire face
-profile and chin but is only 144 mm across — 27 slices at 5.3 mm.
+view slices straight through the face. The sagittal T1 has the entire profile,
+nose and chin included, but is only 144 mm across.
 
-Since both come from the same session they already share a coordinate frame, so
-`pipeline/03_head.py` simply unions the two silhouettes. The SWI supplies the
-width and the vault, the sagittal T1 supplies the face.
+They come from the same session, so they already share a coordinate frame, and
+`pipeline/03_head.py` simply unions the two silhouettes. SWI gives the width
+and the skull vault, sagittal T1 gives the face.
 
 ![The head surface](docs/pipeline/seg-head-mesh.png)
 
-The head model is **defaced** by default — everything in front of the frontal
-lobe and below eye level is flattened away. A 3D face reconstructed from MRI is
-biometric data and can be matched against a photograph, so the unmodified
+The head is **defaced** by default. Everything in front of the frontal lobe and
+below eye level gets flattened away. A 3D face reconstructed from MRI is
+biometric data, and it can be matched against a photograph, so the unmodified
 version is opt-in via `--keep-face`, writes only into the git-ignored `build/`
-directory, and is never exported to a mesh.
+folder, and never becomes a mesh.
 
-## Step 7 — Naming every part
+## Step 7 : Naming every part
 
-This is the step that turns a blob into something you can learn from.
+This is the step that turns a nice-looking blob into something you can learn
+from.
 
-I warp the **Harvard-Oxford atlases** onto my scan with ANTs SyN registration
-and let the labels come along. Doing it this way means every named region
-traces back to a published atlas rather than to a boundary I invented.
+I warp the **Harvard-Oxford atlases** onto my scan using ANTs SyN registration
+and let the labels ride along. Doing it this way means every named region
+traces back to a published atlas instead of to a boundary I drew by eye.
 
-The registration is cross-modality — the atlas template is T1-weighted and my
-scan is SWI — so it is driven by mutual information on brain-extracted volumes.
+The registration is cross-modality, since the atlas template is T1-weighted and
+my scan is SWI, so it runs on mutual information over brain-extracted volumes.
 
 ![Atlas labels on the slices](docs/pipeline/seg-atlas-overlay.png)
 
 The ventricles, thalamus, caudate, putamen, hippocampus and brainstem contours
-all land on the real structures, which is the check that matters.
+all land on the real structures, which is the only check that matters.
 
 **The cortex problem.** My first version used only the subcortical atlas, and
-the result covered a small fraction of the brain — the entire cerebral cortex
-was unlabelled, which is most of it. Harvard-Oxford splits into two atlases and
-I had only warped one.
+when I switched the layers on, the result covered a small fraction of the
+brain. The entire cerebral cortex was unlabelled, which is to say most of it.
+Harvard-Oxford ships as two separate atlases and I had only warped one of them.
 
-The second version warps the cortical atlas as well: 48 regions, which I group
-into anatomical lobes with an ordered set of matching rules. Order matters —
-"Temporal Occipital Fusiform Cortex" has to be matched before the plain
-"occipital" rule or it lands in the wrong lobe. The script prints any label it
-fails to assign, which is how I caught "Parietal Opercular Cortex" slipping
+So the second version warps the cortical atlas too: 48 regions, which I group
+into lobes with an ordered set of matching rules. Order matters. "Temporal
+Occipital Fusiform Cortex" has to be matched before the plain "occipital" rule
+or it ends up in the wrong lobe entirely. The script prints anything it fails
+to assign, which is how I caught "Parietal Opercular Cortex" quietly slipping
 through on the first run.
 
-**The cerebellum** has no Harvard-Oxford label at all. I derive it as the one
-large unlabelled blob left inside the brain mask once everything else is
-accounted for, eroding first to drop the thin unlabelled CSF rim that hugs the
-whole surface.
+**The cerebellum** has no Harvard-Oxford label at all, which surprised me. I
+derive it as the one large unlabelled blob left inside the brain mask once
+everything else is accounted for, eroding first to shed the thin unlabelled CSF
+rim that clings to the whole surface.
 
-Final tally — twenty parts, **95.4% of the brain by volume**:
+Final tally, twenty parts covering **95.4% of the brain by volume**:
 
 | Group | Structures |
 |---|---|
@@ -249,216 +259,221 @@ Final tally — twenty parts, **95.4% of the brain by volume**:
 | Inside | white matter, cerebellum, brainstem, ventricles, thalamus, caudate, putamen, pallidum, hippocampus, amygdala, accumbens |
 | Other | whole cortical surface, arteries, head |
 
-Volumes land in normal adult ranges — brain 1173 cm³, white matter 295 cm³,
-cerebellum 106 cm³, ventricles 11.1 cm³, brainstem 27.9 cm³.
+The volumes all land in normal adult ranges: brain 1173 cm³, white matter
+295 cm³, cerebellum 106 cm³, ventricles 11.1 cm³, brainstem 27.9 cm³.
 
-## Step 8 — Baking the light in
+## Step 8 : Faking the light properly
 
-A single-colour organic surface renders flat. Screen-space ambient occlusion
-would fix it but costs a postprocessing pass and several more dependencies.
+A single-colour organic surface renders flat and plasticky. Screen-space
+ambient occlusion would fix it, at the cost of a postprocessing pass and
+several more dependencies.
 
-Instead I compute ambient occlusion **from the volume itself** and bake it into
-vertex colours. Blur the binary mask, then sample it at each vertex: deep in a
-sulcus you are walled in on all sides so the blurred occupancy is high; on a
-gyral crown it is low. That maps directly onto how dark the crevice should be,
-costs one convolution, and needs nothing at runtime beyond `COLOR_0`.
+So instead I compute ambient occlusion **from the volume itself** and bake it
+into the vertex colours. Blur the binary mask, then sample it at every vertex.
+Deep in a fold you are walled in on all sides, so the blurred value is high. On
+top of a ridge it is low. That maps directly onto how dark the crevice should
+be, costs a single convolution, and needs nothing at runtime beyond a colour
+attribute.
 
-This is the single change that made the model look like tissue rather than
-plastic.
+This one change did more for how the model looks than everything else combined.
 
-`pipeline/05_export.py` then smooths each mask with Taubin lambda/mu smoothing
-(which avoids the shrinkage plain Laplacian smoothing causes — that would
-visibly thin the gyri), decimates to a triangle budget, and writes GLB.
+`pipeline/05_export.py` then smooths each mask with Taubin lambda/mu smoothing,
+which avoids the shrinkage plain Laplacian smoothing causes and would visibly
+thin the gyri, decimates to a triangle budget, and writes GLB.
 
-One coordinate detail worth stating: scanner space is RAS and glTF is Y-up, so
-vertices are mapped `(x, y, z) → (x, z, −y)`. That is a right-handed transform,
-determinant +1. A left-handed mapping would silently mirror the model and swap
-my left and right hemispheres, which is exactly the kind of error nobody
-notices until it matters.
+One coordinate detail worth writing down: scanner space is RAS and glTF is
+Y-up, so vertices get mapped `(x, y, z)` to `(x, z, -y)`. That is a
+right-handed transform with determinant +1. A left-handed one would silently
+mirror the model and swap my left and right hemispheres, which is the kind of
+bug you don't notice until it really matters.
 
 ## The viewer
 
-`web/` is a three.js application with no build step and no CDN — three.js and
-three-mesh-bvh are vendored into `web/vendor/`, so it runs fully offline.
+`web/` is a three.js app with no build step and no CDN. three.js and
+three-mesh-bvh are vendored into `web/vendor/`, so the whole thing runs
+offline.
 
 ### Two modes
 
-**Minimal** is the default: the model, a centred bar and the compass. Nothing
-else. Click any structure and a leader line runs out from the exact point you
-clicked to a card explaining what it is.
+**Minimal** is the default. The model, a centred bar, the compass, nothing
+else. Click any structure and a leader line runs from the exact point you
+touched out to a card telling you what it is.
 
 ![Minimal mode with a callout](docs/ui/ui-minimal-callout.png)
 
-**Explore** brings in a symmetric pair of panels — layers on the left, detail
-on the right — so the layout stays balanced. In this mode the callout shrinks
-to a label on the end of the leader, because repeating the text over the model
-just covers it.
+**Explore** brings in a symmetric pair of panels, layers on the left and detail
+on the right, so the layout stays balanced instead of leaning to one side. In
+this mode the callout shrinks down to just a label on the end of the leader,
+because repeating the same paragraphs over the model was only covering it up.
 
-![Explore mode showing the lobes](docs/ui/ui-lobes.png)
+![Switching views in explore mode](docs/gif/explore.gif)
 
-The right-hand panel carries the full detail: the anatomical system it belongs
-to, volume, its share of total brain volume, physical extent in millimetres,
-triangle count, what it does, and something worth knowing about it.
+The right panel is where the detail lives: which anatomical system it belongs
+to, volume, its share of the whole brain, physical size in millimetres,
+triangle count, what it does, and one thing worth knowing about it.
 
 ![Deep structures](docs/ui/ui-deep.png)
 
 Layers are **chips, not switches**. Click to toggle, double-click to isolate,
-hover to highlight in 3D. Above them a Views row sets whole scenes in one
-click — arranging twenty chips by hand to reach a sensible view is tedious and
-the useful combinations are predictable. *Deep* also fades the cortex
-automatically and deliberately excludes white matter, because white matter is a
-large opaque shell wrapping exactly the nuclei that view exists to show.
+hover to light it up in 3D. Above them, a row of Views sets a whole scene in
+one click, because arranging twenty chips by hand to get somewhere sensible is
+tedious and the useful combinations are predictable. *Deep* also fades the
+cortex for you, and deliberately leaves white matter off, since white matter is
+a big opaque shell wrapped around precisely the structures that view exists to
+show.
 
-There is a cross-section that cuts a sagittal, axial or coronal plane through
-everything at once:
+There is a cross-section that cuts a plane through everything at once:
 
-![Cross-section](docs/ui/ui-crosssection.png)
+![Cross-section sweeping through the brain](docs/gif/section.gif)
 
-And a topic card on hemispheric specialisation, which covers contralateral
-control, language lateralisation and the corpus callosum — and explicitly flags
-the "left-brained / right-brained personality" idea as unsupported, since that
-is the version most people have heard:
+And a topic card on hemispheres, covering contralateral control, language
+lateralisation and the corpus callosum. It also flatly calls the
+"left-brained / right-brained personality" idea unsupported, since that is the
+version most people have actually heard:
 
 ![Hemispheres topic](docs/ui/ui-hemispheres.png)
 
-Other things it does: fly the camera right inside the brain (`minDistance` is
-0.6 mm), double-click a structure to focus it, anatomical preset views, an
-orientation compass, and a slow auto-orbit after five seconds idle.
+A few other things it does: fly the camera right inside the brain, double-click
+a structure to focus on it, jump to anatomical preset views, and drift into a
+slow orbit after five seconds of being left alone.
 
-### Mobile
+### On a phone
 
-The panels become bottom sheets that sit above the bar, one at a time. Touch
-targets go to 38 px. The bar tightens — six view buttons plus three controls
-overflowed a 390 px screen and became literally unreachable, so the segment
-shrinks and Reset collapses to its glyph.
+The panels turn into bottom sheets sitting above the bar, one at a time, with
+38 px touch targets.
 
-The leader-line callout is replaced by a docked card, because a floating card
-tethered to a line is unreadable at that size. On mobile that card is the only
-detail surface, so it carries everything: description, stats and the fact. The
-camera also frames wider on phones so the model clears the card.
+![The viewer on a phone](docs/gif/mobile.gif)
 
-<p align="center">
-  <img src="docs/ui/mobile-minimal.png" width="30%" alt="Mobile minimal">
-  <img src="docs/ui/mobile-callout.png" width="30%" alt="Mobile callout">
-  <img src="docs/ui/mobile-sheet.png" width="30%" alt="Mobile layer sheet">
-</p>
+The floating callout docks to the bottom, because a card tethered to a line is
+unreadable at that size. On a phone that card is the only detail surface, so it
+carries everything: description, stats, the fact. The camera also frames wider
+so the model stays clear of it.
 
-## Performance
+The bar needed real work. Six view buttons plus three controls overflowed a
+390 px screen and pushed the last ones clean off the edge of the viewport,
+where they could not be tapped at all. The segment tightens and Reset collapses
+to its glyph.
 
-`npm run bench` drives the viewer with a real GPU and reports frame times, draw
-calls and picking cost. Measured on an AMD Radeon integrated GPU at 1600 × 950:
+## Making it fast
+
+`npm run bench` drives the viewer on a real GPU and reports frame times, draw
+calls and picking cost. On an AMD Radeon integrated GPU at 1600 x 950:
 
 | Scene | Before | After |
 |---|---|---|
 | Brain only | 59.9 fps | 59.9 fps (vsync cap) |
 | Default | 59.9 fps | 59.9 fps (vsync cap) |
-| Lobes | — | 59.9 fps |
-| Deep | — | 59.9 fps |
+| Lobes | n/a | 59.9 fps |
+| Deep | n/a | 59.9 fps |
 | Everything on | 28.6 fps | **59.9 fps** |
 | Everything, close-up | 14.5 fps | **48.3 fps** |
 | Raycast per pick | 43.4 ms | **0.427 ms** |
 
 "After" is measured with twenty parts and 1.4 M triangles on screen, roughly
-double the geometry of the "before" column. **No triangles were removed.**
+double the geometry of the "before" column. **Not one triangle was removed.**
 
 What actually mattered:
 
-**Picking was the worst offender by a distance.** Hover raycasting was
-brute-force testing every triangle of every visible mesh on every
-`pointermove` — 1.3 M triangles, 43 ms per event, on an input that fires faster
-than the screen refreshes. A BVH made it ~100× faster. Raycasts are now also
-coalesced to one per frame and skipped entirely mid-drag.
+**Picking was the worst offender by miles.** Hover raycasting was brute-force
+testing every triangle of every visible mesh on every single `pointermove`.
+1.3 M triangles, 43 ms per event, on an input that fires faster than the screen
+refreshes. A BVH made it about a hundred times faster. Raycasts are now also
+coalesced to one per frame and skipped entirely while you are dragging, since
+the answer would be thrown away anyway.
 
 **Everything was permanently flagged `transparent`,** even at full opacity.
-That put all the nested shells into the sorted blend pass with no early-Z
-rejection. Opaque parts now render opaque, which is what halved draw calls.
+That dumped every nested shell into the sorted blend pass with no early-Z
+rejection. Opaque parts render opaque now, which is what halved the draw calls.
 
-**Clearcoat and sheen are dropped below 50% opacity.** A second specular lobe
-you cannot see through a 22%-opaque surface is pure cost. The scalp — a
-full-screen near-transparent shell, the most expensive thing on screen in the
-close-up case — dropped to `MeshStandardMaterial` entirely.
+**Clearcoat and sheen get dropped below 50% opacity.** A second specular
+highlight you cannot possibly see through a 22%-opaque surface is pure wasted
+cost. The scalp, which is a full-screen near-transparent shell and was the most
+expensive single thing on screen in the close-up case, dropped to a plain
+standard material entirely.
 
-**Adaptive resolution** as a backstop: framebuffer scale steps down when frame
-time stays above 24 ms and recovers when it drops. Pixels only, never geometry.
+**Adaptive resolution** as a safety net. The framebuffer scale steps down when
+frame time stays above 24 ms and recovers when it drops. Pixels only, never
+geometry.
 
-## Problems I hit
+## Everything that went wrong
 
-Beyond the ones described in context above, four were interesting enough to
-write down.
+Beyond the ones above, four were interesting enough to be worth writing down.
 
 ### The cortex went hollow
 
-I switched materials to `FrontSide` so the GPU could cull backfaces. It
-benchmarked beautifully — 60 fps with everything on, 42 close-up. It also did
-this:
+I switched materials to `FrontSide` so the GPU could cull back faces. Free
+performance, obviously. It benchmarked beautifully, 60 fps with everything on.
+It also did this:
 
 ![Backface culling punching holes through the cortex](docs/ui/bug-hollow.png)
 
-These meshes come from marching cubes on a **non-watertight** mask and their
-triangle winding is mixed. Culling deleted every inward-wound face, punching
-holes straight through the surface. Measuring it afterwards: the head is 99%
-correctly wound and watertight, and rendered fine; the brain is neither.
-`trimesh.fix_normals()` changes nothing, because it cannot orient a mesh that
-isn't watertight.
+These meshes come from marching cubes on a **non-watertight** mask, and their
+triangle winding is mixed. Culling deleted every inward-facing triangle,
+punching holes straight through my cortex. Measuring it afterwards was
+illuminating: the head is 99% correctly wound and watertight, and rendered
+perfectly. The brain is neither. `trimesh.fix_normals()` changes nothing at
+all, because it cannot orient a mesh that isn't watertight in the first place.
 
-`side` is pinned to `DoubleSide` with a comment explaining why. Making the
-meshes watertight and consistently oriented in the pipeline would unlock this
-properly — and would also make them printable, since watertightness is exactly
-what slicers require.
+`side` is pinned to `DoubleSide` now with a comment explaining exactly why.
+Making the meshes watertight in the pipeline would unlock it properly, and
+would also make them 3D-printable, since watertightness is precisely what
+slicers demand.
 
 ### Everything rendered as a black silhouette
 
-The geometry loaded, the shape was right, and every mesh was pure black. The
-GLBs had no `NORMAL` attribute, so every lit material had nothing to shade
-with. Fixed at both ends: `include_normals=True` on export, and a
-`computeVertexNormals()` fallback on load.
+Geometry loaded, shape was right, every mesh pure black. The GLB files had no
+`NORMAL` attribute, so every lit material had nothing to shade with. Fixed at
+both ends: `include_normals=True` on export, and a `computeVertexNormals()`
+fallback on load.
 
 ### The leader lines were invisible
 
-My first callout pushed the label away from the surface **along the surface
-normal**. That reads correctly in profile and collapses to exactly zero screen
-length whenever the normal happens to face the camera — which is most of the
-time, because you tend to click what is pointing at you. The leader is now
-routed in screen space, so it always has visible extent whichever way the model
-is turned.
+My first callout pushed its label away from the surface **along the surface
+normal**. That looks perfect in profile, and collapses to exactly zero screen
+length whenever the normal happens to point at the camera. Which is most of the
+time, because you tend to click the thing facing you. The leader is routed in
+screen space now, so it always has visible length whichever way the model is
+turned.
 
-### Evans' index, three wrong answers
+### Evans' index, three wrong answers in a row
 
-Evans' index — maximum frontal-horn width over maximum internal skull
-diameter — is a single caliper measurement a radiologist makes on one chosen
-slice. Automating it produced three confidently wrong numbers before I got one
-I trusted:
+Evans' index is a ratio of ventricle width to skull width, and it is normally a
+single caliper measurement a radiologist makes on one chosen slice. Automating
+it produced three confident, plausible, completely wrong numbers before I got
+one I trusted:
 
-1. **0.325.** Ventricles segmented from SWI on a "dark = CSF" rule. Wrong: on
-   SWI, veins are the darkest structures in the brain, so it traced vessels and
-   sulci.
-2. **0.607.** Ventricles from T2 (where CSF is unambiguous), but maximising the
-   *ratio* across slices — which just finds a slice where the denominator is
-   degenerate. It reported 7.9 mm frontal horns in a 13.1 mm skull.
-3. **0.313.** Slice chosen by maximum frontal-horn width, denominator taken
-   globally. Better, but the "frontal horns" it found were in the posterior
-   fossa: it had measured the fourth ventricle.
-4. **0.194.** Atlas restricted to the *lateral* ventricles specifically, T2
-   intensity for the boundary, frontal horns taken as the anterior 45% of their
-   own extent.
+1. **0.325.** Ventricles segmented from SWI using "dark means CSF". Wrong,
+   because on SWI the *veins* are the darkest thing in the brain, so it traced
+   blood vessels and sulci.
+2. **0.607.** Ventricles from T2 this time, where CSF is unmistakable, but
+   maximising the *ratio* across slices. That just finds a slice where the
+   denominator is degenerate. It reported 7.9 mm ventricles inside a 13.1 mm
+   skull.
+3. **0.313.** Slice picked by widest frontal horn, denominator taken globally.
+   Closer, except the "frontal horns" it found were in the posterior fossa. It
+   had measured the fourth ventricle.
+4. **0.194.** Atlas used to identify the *lateral* ventricles specifically, T2
+   intensity for the actual boundary, frontal horns taken as the front 45% of
+   their own extent.
 
-Each of the first three would have read as a plausible finding. The only reason
-I caught them was rendering the exact slice the measurement came from and
-looking at it. That is the whole lesson: an automated number from a clinical
-scan is worth nothing without a picture of what it measured.
+Any of the first three would have read as a real finding. The only reason I
+caught them is that I rendered the exact slice each measurement came from and
+looked at it. That is the whole lesson of this project in one line: a number
+from an automated pipeline is worth nothing without a picture of what it
+measured.
 
-## Running it
+## Running it yourself
 
 ```bash
 npm install     # three.js and three-mesh-bvh
 npm run serve   # http://localhost:8080
 ```
 
-It has to be served over http — ES modules and `fetch()` do not work from
+It has to be served over http. ES modules and `fetch()` do not work from
 `file://`.
 
 **Controls:** drag to orbit, scroll to zoom, click a structure to read about
-it, double-click to focus it, `E` toggles Explore mode, `Esc` clears.
+it, double-click to focus, `E` toggles Explore, `Esc` clears.
 
 ### Rebuilding from the scan
 
@@ -466,45 +481,44 @@ The DICOM is deliberately not in this repo. Point the scripts at a folder of
 `dcm2niix` output and run them in order:
 
 ```bash
-python pipeline/01_brain.py            # brain mask + cortical surface
+python pipeline/01_brain.py            # brain mask and cortical surface
 python pipeline/02_arteries.py         # arterial tree from the angiogram
 python pipeline/02b_align_arteries.py  # register the angiogram onto the brain
-python pipeline/03_head.py             # head surface (--keep-face to skip defacing)
-python pipeline/04_deep.py             # atlas registration -> named structures
-python pipeline/05_export.py           # AO bake, decimate, write GLB + manifest
+python pipeline/03_head.py             # head surface (--keep-face skips defacing)
+python pipeline/04_deep.py             # atlas registration, named structures
+python pipeline/05_export.py           # AO bake, decimate, write GLB
 ```
 
-Requires `numpy scipy scikit-image nibabel trimesh fast-simplification antspyx nilearn`.
+Needs `numpy scipy scikit-image nibabel trimesh fast-simplification antspyx nilearn`.
 
-Every script writes a QC image into `build/`. Look at those, not just the
-console output — most of the mistakes above produced perfectly reasonable
-numbers and obviously wrong pictures. `04_deep.py` caches its registration;
-pass `--force` to redo it.
+Every script drops a QC image into `build/`. Look at those, not just the
+console output. Almost every mistake in this project produced perfectly
+reasonable numbers and an obviously wrong picture. `04_deep.py` caches its
+registration, so pass `--force` when you want it redone.
 
-## What the numbers mean
+## What the numbers actually mean
 
-Not every part of this is the same kind of measurement, and the difference
-matters when reading the volumes.
+Not every part of this model is the same kind of thing, and the difference
+matters if you are reading the volumes.
 
-**Measured from the scan.** The brain surface, the arteries and the head. Every
+**Measured from the scan.** The brain surface, the arteries, the head. Every
 vertex traces back to voxel intensities in the DICOM.
 
-**Positioned from the scan, shaped by an atlas.** The lobes, white matter and
-all the deep nuclei. These are Harvard-Oxford structures elastically warped
-onto my anatomy: their *location* is inferred from my scan, their *shape* is
-substantially inherited from the template. The volumes shown for them are
-closer to "the atlas's structure after warping" than to an independent
-measurement of me. Lobe boundaries in particular are a convention, not a
-visible feature of the tissue.
+**Positioned from the scan, shaped by an atlas.** The lobes, white matter, all
+the deep nuclei. These are Harvard-Oxford structures elastically warped onto my
+anatomy. Their *location* comes from my scan; their *shape* is largely
+inherited from the template. So the volumes shown for them are closer to "the
+atlas structure after warping" than to an independent measurement of me. Lobe
+boundaries especially are a convention, not something visible in the tissue.
 
-**Derived by subtraction.** The cerebellum is whatever the atlases did not
-label. At 105.9 cm³ against a normal 120–160 cm³ it is probably
+**Worked out by subtraction.** The cerebellum is whatever the atlases did not
+label. At 105.9 cm³ against a typical 120 to 160 cm³, it is probably
 under-segmented.
 
 **Chosen, not measured.** Every colour, and the smoothing. Taubin smoothing and
-the pre-mesh blur genuinely move the surface, so this is a smoothed likeness,
-not a millimetre-exact cast.
+the pre-mesh blur genuinely move the surface, so this is a smoothed likeness
+rather than a millimetre-exact cast.
 
-The brain volume is also threshold-dependent: it moves between 1078 and
-1241 cm³ across reasonable choices of the cortical cut, which is worth
-remembering before comparing it to anything.
+And the brain volume itself is threshold-dependent. It moves between 1078 and
+1241 cm³ across reasonable choices of that cortical cut, which is worth
+remembering before comparing it against anything.
