@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Brain — MRI 2023-10-07</title>
+<title>Shaan's Brain</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🧠</text></svg>">
 <link rel="stylesheet" href="css/app.css">
 <script type="importmap">
@@ -19,19 +19,22 @@
 
 <div id="stage">
   <canvas id="view"></canvas>
-
-  <div id="loader"><div class="bar"><i></i></div><span>loading volumes</span></div>
-
-  <!-- floating HTML labels for pins, positioned per frame from 3D -->
+  <div id="calloutlayer"></div>
   <div id="pinlayer"></div>
   <div id="hovertip" hidden></div>
 </div>
 
-<header id="titlebar">
+<div id="loader">
+  <div class="ring"><i></i></div>
+  <div class="bar"><i></i></div>
+  <span>reconstructing</span>
+</div>
+
+<header id="titlebar" class="rise" style="--d:.15s">
   <h1>SHAAN'S BRAIN</h1>
 </header>
 
-<aside id="layers" class="panel">
+<aside id="layers" class="panel rise" style="--d:.3s">
   <h2>Layers</h2>
   <div id="layerlist"></div>
 
@@ -48,15 +51,17 @@
       <button data-axis="z">cor</button>
     </div>
   </div>
-  <div class="row"><input type="range" id="clippos" min="-100" max="100" value="0" step="0.5" disabled></div>
-  <div class="row"><label class="chk"><input type="checkbox" id="clipflip"> flip side</label></div>
+  <div class="row">
+    <input type="range" id="clippos" min="-100" max="100" value="0" step="0.5" disabled>
+    <label class="chk" title="flip which side is cut away"><input type="checkbox" id="clipflip"></label>
+  </div>
 </aside>
 
-<aside id="inspect" class="panel">
+<aside id="inspect" class="panel rise" style="--d:.42s">
   <h2>Selection</h2>
-  <div id="selinfo" class="empty">Click any structure to identify it.</div>
+  <div id="selinfo" class="empty">Click any structure to read what it does.</div>
 
-  <h2>Pins <span id="pincount">0</span></h2>
+  <h2>Pins <span id="pincount"></span></h2>
   <div class="row">
     <button id="pinmode" class="btn">＋ place pin</button>
     <button id="pinsave" class="btn ghost">export</button>
@@ -64,21 +69,18 @@
   <div id="pinlist"></div>
 </aside>
 
-<footer id="tools">
+<footer id="tools" class="rise" style="--d:.54s">
   <div class="seg" id="views">
     <button data-view="L">L</button><button data-view="R">R</button>
     <button data-view="A">A</button><button data-view="P">P</button>
     <button data-view="S">S</button><button data-view="I">I</button>
   </div>
+  <button id="hemi" class="btn ghost">L / R brain</button>
   <button id="reset" class="btn ghost">reset</button>
   <button id="shot" class="btn ghost">capture</button>
-  <div id="scalebar"><i></i><span>50 mm</span></div>
 </footer>
 
-<div id="orient">
-  <span class="ox">R</span><span class="oy">S</span><span class="oz">A</span>
-</div>
-
+<div id="orient"></div>
 <div id="disclaimer">Research / personal visualisation. Not a diagnostic image.</div>
 
 <script type="module" src="js/app.js"></script>

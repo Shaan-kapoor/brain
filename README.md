@@ -17,7 +17,7 @@ taken on 2023-10-07 (Philips Achieva 1.5 T), and a small web viewer for it.
 | Arteries | 3D TOF MRA, 0.34 × 0.34 × 0.75 mm | bright-blood threshold + shape filters |
 | Cerebellum | derived | brain minus all atlas-labelled cerebrum |
 | Ventricles, brainstem, thalamus, hippocampus, caudate, putamen, amygdala | SWI | Harvard-Oxford atlas warped on with ANTs SyN |
-| Head / scalp / face | SWI + T1 sagittal | fused outer silhouette |
+| Head / scalp | SWI + T1 sagittal | fused outer silhouette, **defaced** |
 
 ## What is measured and what is inferred
 
@@ -56,11 +56,22 @@ npm run serve   # http://localhost:8080
 It must be served over http — ES modules and `fetch()` do not work from
 `file://`.
 
-**Controls:** drag to orbit, scroll to zoom, click a structure to identify it,
-click a layer row to toggle it. `＋ place pin` then click the model to drop a
-labelled marker; `export` downloads `pins.json`, which you can drop back into
-`web/` to make the pins permanent. The cross-section buttons cut a sagittal,
-axial or coronal plane through everything at once.
+**Controls:** drag to orbit, scroll to zoom (you can go right inside the
+brain), click a structure to draw a leader line out to a card explaining what
+it does, double-click to focus it, click a layer row to toggle it. `L / R
+brain` explains hemispheric specialisation. `＋ place pin` then click the model
+to drop a labelled marker; `export` downloads `pins.json`, which you can drop
+back into `web/` to make the pins permanent. The cross-section buttons cut a
+sagittal, axial or coronal plane through everything at once.
+
+### About the descriptions
+
+The functional summaries in `web/anatomy.json` are standard textbook
+neuroanatomy, written to be readable rather than exhaustive — they describe
+what each structure characteristically does, not what this particular brain
+does. The hemispheres card deliberately includes the "left-brained /
+right-brained personality" myth, because functional lateralisation is real and
+the personality claim built on top of it is not.
 
 ## Rebuilding from the raw scan
 
@@ -108,11 +119,15 @@ The source DICOM carries full patient identifiers (name, ID, date of birth,
 institution) and lives **outside this repository** on purpose, with `.gitignore`
 as a second line of defence.
 
-The head model **includes the face**, which is a deliberate choice by the
-subject — who is also the author of this repo. Be aware of what that means: a
-3D face reconstructed from MRI is biometric data and can be matched against a
-photograph. If you fork this pipeline for anyone else's scan, run
-`python pipeline/03_head.py --deface`, which flattens everything in front of
-the frontal lobe and below eye level while leaving the skull vault intact.
+A 3D face reconstructed from MRI is biometric data — it can be matched against
+a photograph. **The head model is therefore defaced by default**: everything in
+front of the frontal lobe and below eye level is flattened away, leaving the
+vault and the back of the head. That is the only head mesh the viewer loads and
+the only one in this repo.
+
+The unmodified version is opt-in via `python pipeline/03_head.py --keep-face`,
+which writes `build/head_identifiable_mask.nii.gz`. That path is git-ignored,
+`05_export.py` never reads it, and no `.glb` is produced from it — so the real
+face cannot reach the web build by accident.
 
 Not a diagnostic tool. Nothing here has been read by a radiologist.

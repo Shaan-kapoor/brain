@@ -1,13 +1,13 @@
 """Outer head surface (scalp + face) from the SWI volume.
 
-By default this exports the head exactly as scanned, face included.
+By default the face is removed: everything in front of the frontal lobe and
+below eye level is flattened away, leaving the skull vault and the back of the
+head intact. That defaced mesh is the only one the viewer ever loads.
 
-Pass --deface to instead flatten everything in front of the frontal lobe and
-below eye level, removing nose, eyes, mouth and chin while leaving the skull
-vault intact. That option exists because a 3D face reconstructed from MRI is
-biometric data - it can be matched back to a photograph - so it matters if the
-model is ever published on behalf of someone who has not chosen that. For this
-repository the subject is also the author, and chose the unmodified face.
+A 3D face reconstructed from MRI is biometric data - it can be matched back to
+a photograph - so the unmodified version is opt-in. Pass --keep-face to write
+`head_identifiable_mask.nii.gz` alongside it. That file stays in build/, is
+git-ignored, and is never exported to web/models.
 """
 from __future__ import annotations
 
@@ -73,18 +73,21 @@ def main():
     brain = C.resample_to(brain_src.astype(np.float32), swi_img.affine,
                           aff, shape, order=0) > 0.5
 
-    if "--deface" in sys.argv:
-        # world coordinates of every voxel index (nibabel affines are RAS+)
-        idx = np.indices(head.shape).reshape(3, -1)
-        world = (aff[:3, :3] @ idx + aff[:3, 3:4]).reshape(3, *head.shape)
-        Y, Z = world[1], world[2]
-        by, bz = world[1][brain], world[2][brain]
-        y_front, z_top = by.max(), bz.max()
-        face = (Y > y_front - 5.0) & (Z < z_top - 45.0)
-        print(f"  defacing: anterior of y={y_front-5:.0f} mm, below z={z_top-45:.0f} mm")
-        head = C.largest_cc(head & ~face)
-    else:
-        print("  keeping the face as scanned (pass --deface to remove it)")
+    if "--keep-face" in sys.argv:
+        # Opt-in only, and it stops here: build/ is git-ignored and 05_export
+        # never reads this file, so the real face cannot reach the web build.
+        nib.save(nib.Nifti1Image(head.astype(np.uint8), aff),
+                 BUILD / "head_identifiable_mask.nii.gz")
+        print("  --keep-face: wrote head_identifiable_mask.nii.gz (local only)")
+
+    # world coordinates of every voxel index (nibabel affines are RAS+)
+    idx = np.indices(head.shape).reshape(3, -1)
+    world = (aff[:3, :3] @ idx + aff[:3, 3:4]).reshape(3, *head.shape)
+    Y, Z = world[1], world[2]
+    y_front, z_top = world[1][brain].max(), world[2][brain].max()
+    face = (Y > y_front - 5.0) & (Z < z_top - 45.0)
+    print(f"  defacing: anterior of y={y_front-5:.0f} mm, below z={z_top-45:.0f} mm")
+    head = C.largest_cc(head & ~face)
 
     nib.save(nib.Nifti1Image(head.astype(np.uint8), aff), BUILD / "head_mask.nii.gz")
     v, f = C.mesh_from_mask(head, aff, presmooth=1.2)

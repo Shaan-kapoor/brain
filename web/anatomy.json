@@ -1,0 +1,91 @@
+{
+  "_note": "Functional summaries shown when a structure is selected. Written from standard neuroanatomy; see README for sources and caveats.",
+  "hemispheres": {
+    "label": "Left & right hemispheres",
+    "lines": [
+      "Each hemisphere controls the opposite side of the body — your left hemisphere moves your right hand, and vice versa.",
+      "In about 95% of right-handers language is handled mainly on the left (Broca's area for producing speech, Wernicke's for understanding it). The right side leans toward spatial attention, face recognition and the melody and emphasis of speech.",
+      "They are joined by the corpus callosum, roughly 200 million nerve fibres carrying constant traffic between the two."
+    ],
+    "myth": "The popular idea of \"left-brained = logical, right-brained = creative\" people is not supported by evidence. Lateralisation is real for specific functions like language, but nearly every ordinary task uses both hemispheres together, and large imaging studies find no such personality types."
+  },
+  "parts": {
+    "brain": {
+      "lines": [
+        "The cerebral cortex — the folded outer sheet, only 2–4 mm thick, where conscious perception, planning, language and voluntary movement happen.",
+        "The folding is a packing trick: it fits roughly three times more surface area into the skull than a smooth brain of the same size could hold.",
+        "It divides into four lobes — frontal for planning and movement, parietal for touch and spatial sense, temporal for hearing, language and memory, occipital for vision."
+      ]
+    },
+    "cerebellum": {
+      "lines": [
+        "The \"little brain\" tucked under the back of the cerebrum, which makes movement smooth, accurate and correctly timed rather than jerky.",
+        "It holds more neurons than the entire rest of the brain combined — around half of all of them — packed into about a tenth of the volume.",
+        "It is also where motor skills become automatic: riding a bicycle or touch-typing without thinking is largely cerebellar learning."
+      ]
+    },
+    "ventricles": {
+      "lines": [
+        "Fluid-filled chambers deep inside the brain, forming a connected system that produces and circulates cerebrospinal fluid.",
+        "That fluid cushions the brain against impact and gives it buoyancy — it effectively weighs about 50 g while floating, instead of its true 1.4 kg.",
+        "It also carries waste away. Roughly half a litre is made each day, so the whole volume is replaced several times over."
+      ]
+    },
+    "brainstem": {
+      "lines": [
+        "The stalk connecting brain to spinal cord, made of midbrain, pons and medulla — and the part you genuinely cannot live without.",
+        "It runs breathing, heart rate, blood pressure, swallowing and the sleep–wake cycle, all without conscious involvement.",
+        "Every signal travelling between your brain and your body passes through it, which is why damage here is so serious."
+      ]
+    },
+    "thalamus": {
+      "lines": [
+        "A pair of egg-shaped hubs sitting at the centre of the brain, acting as the main relay station for information heading to the cortex.",
+        "Almost all sensory input — vision, hearing, touch, taste — stops here to be sorted and routed before reaching conscious awareness. Smell is the single exception.",
+        "It also gates attention and helps switch the brain between waking and sleep."
+      ]
+    },
+    "hippocampus": {
+      "lines": [
+        "A curved, seahorse-shaped structure in the temporal lobe, and the place where new memories of events are formed.",
+        "It does not store them permanently — it binds an experience together and gradually hands it to the cortex for long-term keeping, largely during sleep.",
+        "It also builds your mental map of space. Its \"place cells\" fire at specific locations, which is how you navigate a familiar route without thinking."
+      ]
+    },
+    "amygdala": {
+      "lines": [
+        "Two almond-shaped clusters that assess emotional significance, especially threat, and trigger the fear response.",
+        "It can react to danger before you consciously register what you saw — the flinch arrives ahead of the thought.",
+        "It also stamps emotional weight onto memories, which is why frightening or joyful moments are recalled far more vividly than ordinary ones."
+      ]
+    },
+    "caudate": {
+      "lines": [
+        "A long C-shaped nucleus curving around the thalamus, part of the basal ganglia.",
+        "It is central to habit formation and procedural learning — turning deliberate, effortful actions into automatic routines.",
+        "It also handles goal-directed behaviour and reward, and is heavily involved in motivation."
+      ]
+    },
+    "putamen": {
+      "lines": [
+        "A basal-ganglia structure sitting just outside the thalamus, working closely with the caudate.",
+        "It regulates movement — selecting which motor programme to run and suppressing the ones you do not want.",
+        "It is a key site in learning motor sequences, and is among the regions affected in Parkinson's disease."
+      ]
+    },
+    "arteries": {
+      "lines": [
+        "The two internal carotid arteries feeding the front of the brain and the two vertebral arteries feeding the back and the brainstem.",
+        "They join at the base of the brain in the circle of Willis, a loop that lets blood reroute if one vessel narrows.",
+        "The brain is about 2% of body weight but takes roughly 20% of the blood and oxygen — it has almost no reserve, which is why interruption causes damage within minutes."
+      ]
+    },
+    "head": {
+      "lines": [
+        "The scalp and outer soft tissue as captured by the scan, shown here with the face removed.",
+        "MRI images water and fat, so bone appears black — the skull itself is essentially invisible here, which is why this is a skin surface and not a skull.",
+        "It is reconstructed from two series fused together, because neither one covers the whole head on its own."
+      ]
+    }
+  }
+}
