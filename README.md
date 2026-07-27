@@ -11,13 +11,20 @@ taken on 2023-10-07 (Philips Achieva 1.5 T), and a small web viewer for it.
 
 ## What is in the model
 
+Twenty separately selectable parts, covering **95.4% of the brain by volume**:
+
 | Part | Source series | Method |
 |---|---|---|
 | Brain surface | SWI / VEN_BOLD, 0.60 × 0.60 × 1.50 mm | threshold + morphology |
+| Frontal, parietal, temporal, occipital lobes, cingulate, insula | SWI | Harvard-Oxford **cortical** atlas (48 regions) grouped into lobes |
+| Cerebral white matter | SWI | Harvard-Oxford subcortical |
+| Ventricles, brainstem, thalamus, caudate, putamen, pallidum, hippocampus, amygdala, accumbens | SWI | Harvard-Oxford subcortical |
+| Cerebellum | derived | brain minus everything the atlases label |
 | Arteries | 3D TOF MRA, 0.34 × 0.34 × 0.75 mm | bright-blood threshold + shape filters |
-| Cerebellum | derived | brain minus all atlas-labelled cerebrum |
-| Ventricles, brainstem, thalamus, hippocampus, caudate, putamen, amygdala | SWI | Harvard-Oxford atlas warped on with ANTs SyN |
 | Head / scalp | SWI + T1 sagittal | fused outer silhouette, **defaced** |
+
+The subcortical atlas alone leaves the entire cortex — most of the brain —
+unnamed, which is why the cortical atlas is warped on as well.
 
 ## What is measured and what is inferred
 
@@ -26,13 +33,14 @@ Worth being precise about, because the parts are not equally trustworthy.
 **Measured from the scan.** The brain surface, the arteries and the head. Every
 vertex traces back to voxel intensities in the DICOM.
 
-**Positioned from the scan, shaped by an atlas.** Thalamus, hippocampus,
-caudate, putamen, amygdala, brainstem, ventricles. These are Harvard-Oxford
-atlas structures elastically warped onto this brain. Their *location* is
-inferred from this anatomy; their *shape* is substantially inherited from the
-template. The volumes quoted for them are therefore closer to "the atlas's
-structure after warping" than to an independent measurement of this subject.
-Treat them as well-placed labels, not as morphometry.
+**Positioned from the scan, shaped by an atlas.** Every named region — the
+lobes, white matter, and all the deep nuclei — are Harvard-Oxford atlas
+structures elastically warped onto this brain. Their *location* is inferred
+from this anatomy; their *shape* is substantially inherited from the template.
+The volumes quoted for them are therefore closer to "the atlas's structure
+after warping" than to an independent measurement of this subject. Treat them
+as well-placed labels, not as morphometry. Lobe boundaries in particular are a
+convention, not a visible feature of the tissue.
 
 **Derived by subtraction.** The cerebellum is whatever the atlas did not label
 inside the brain mask. At 105.7 cm³ against a normal 120–160 cm³ it is
@@ -56,13 +64,20 @@ npm run serve   # http://localhost:8080
 It must be served over http — ES modules and `fetch()` do not work from
 `file://`.
 
-**Controls:** drag to orbit, scroll to zoom (you can go right inside the
+**Controls:** drag to orbit, scroll to zoom (you can fly right inside the
 brain), click a structure to draw a leader line out to a card explaining what
-it does, double-click to focus it, click a layer row to toggle it. `L / R
-brain` explains hemispheric specialisation. `＋ place pin` then click the model
-to drop a labelled marker; `export` downloads `pins.json`, which you can drop
-back into `web/` to make the pins permanent. The cross-section buttons cut a
-sagittal, axial or coronal plane through everything at once.
+it does, double-click it to focus.
+
+**Layers** are chips rather than switches. Click one to toggle it,
+double-click to isolate it, hover to highlight it in 3D. The **Views** row at
+the top sets whole scenes in one click — *Whole brain*, *Lobes*, *Deep*,
+*Vessels*, *Everything*, *Clear* — because arranging twenty chips by hand to
+reach a sensible view is tedious and the useful combinations are predictable.
+*Deep* also fades the cortex automatically, since the structures it shows are
+otherwise hidden inside it.
+
+`L / R brain` explains hemispheric specialisation. The cross-section buttons
+cut a sagittal, axial or coronal plane through everything at once.
 
 ### Performance
 
@@ -74,9 +89,14 @@ draw calls and picking cost. Measured on an AMD Radeon integrated GPU at
 |---|---|---|
 | Brain only | 59.9 fps | 59.9 fps (vsync cap) |
 | Default (brain + arteries) | 59.9 fps | 59.9 fps (vsync cap) |
-| Everything on | 28.6 fps | **51.8 fps** |
-| Everything, close-up | 14.5 fps | **30.4 fps** |
-| Raycast per pick | 43.4 ms | **0.214 ms** |
+| Lobes | — | 59.9 fps |
+| Deep | — | 59.9 fps |
+| Everything on | 28.6 fps | **59.9 fps** |
+| Everything, close-up | 14.5 fps | **48.3 fps** |
+| Raycast per pick | 43.4 ms | **0.427 ms** |
+
+"After" is measured with twenty parts and 1.4 M triangles on screen — roughly
+double the geometry of the "before" column, which had eleven.
 
 Not one triangle was removed. The wins came from:
 

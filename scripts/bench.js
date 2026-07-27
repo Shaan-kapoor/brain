@@ -6,24 +6,23 @@
 const puppeteer = require('puppeteer');
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// NB: these run inside the page via evaluate(), so they cannot close over
+// anything defined here in Node - each one has to be self-contained.
 const SCENES = {
   'brain only': () => {
-    for (const r of document.querySelectorAll('.layer')) {
-      const on = !r.classList.contains('off');
-      if (r.dataset.name === 'brain' ? !on : on) r.click();
+    for (const c of document.querySelectorAll('.chip')) {
+      if ((c.dataset.name === 'brain') !== c.classList.contains('on')) c.click();
     }
   },
   'default (brain+arteries)': () => {
-    for (const r of document.querySelectorAll('.layer')) {
-      const want = ['brain', 'arteries'].includes(r.dataset.name);
-      if (want === r.classList.contains('off')) r.click();
+    for (const c of document.querySelectorAll('.chip')) {
+      const want = c.dataset.name === 'brain' || c.dataset.name === 'arteries';
+      if (want !== c.classList.contains('on')) c.click();
     }
   },
-  'everything on': () => {
-    for (const r of document.querySelectorAll('.layer')) {
-      if (r.classList.contains('off')) r.click();
-    }
-  },
+  'lobes': () => document.querySelector('#presets button[data-preset="lobes"]').click(),
+  'deep': () => document.querySelector('#presets button[data-preset="deep"]').click(),
+  'everything on': () => document.querySelector('#presets button[data-preset="all"]').click(),
 };
 
 async function measure(page, seconds = 4) {

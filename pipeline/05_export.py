@@ -32,30 +32,54 @@ BUILD = REPO / "build"
 MODELS = REPO / "web" / "models"
 MODELS.mkdir(parents=True, exist_ok=True)
 
-# mask file, output name, label, colour, triangle budget, smoothing, group
+# mask file, name, label, short label, colour, triangle budget, smoothing,
+# group, visible by default
 PARTS = [
-    ("brain_mask.nii.gz",       "brain",       "Brain surface",
-     "#e8d3c6", 260_000, 4,  "brain",  True),
-    ("arteries_aligned_mask.nii.gz", "arteries", "Arteries (carotid + vertebral)",
-     "#d64545", 160_000, 8,  "vessels", True),
-    ("head_mask.nii.gz",        "head",        "Head and scalp",
+    ("brain_mask.nii.gz", "brain", "Brain surface", "Cortex surface",
+     "#e8d3c6", 260_000, 4, "brain", True),
+
+    # cortex, parcellated into lobes
+    ("deep_lobe_frontal_mask.nii.gz", "lobe_frontal", "Frontal lobe", "Frontal",
+     "#68a0ff", 55_000, 8, "cortex", False),
+    ("deep_lobe_parietal_mask.nii.gz", "lobe_parietal", "Parietal lobe", "Parietal",
+     "#6edcbe", 55_000, 8, "cortex", False),
+    ("deep_lobe_temporal_mask.nii.gz", "lobe_temporal", "Temporal lobe", "Temporal",
+     "#ffaa64", 55_000, 8, "cortex", False),
+    ("deep_lobe_occipital_mask.nii.gz", "lobe_occipital", "Occipital lobe", "Occipital",
+     "#d78cfa", 55_000, 8, "cortex", False),
+    ("deep_lobe_cingulate_mask.nii.gz", "lobe_cingulate", "Cingulate cortex", "Cingulate",
+     "#fa8296", 40_000, 8, "cortex", False),
+    ("deep_lobe_insula_mask.nii.gz", "lobe_insula", "Insula", "Insula",
+     "#fad26e", 30_000, 8, "cortex", False),
+
+    # everything under the cortex
+    ("deep_white_matter_mask.nii.gz", "white_matter", "Cerebral white matter", "White matter",
+     "#e2e2e8", 70_000, 9, "deep", False),
+    ("deep_cerebellum_mask.nii.gz", "cerebellum", "Cerebellum", "Cerebellum",
+     "#82c8eb", 60_000, 10, "deep", False),
+    ("deep_brainstem_mask.nii.gz", "brainstem", "Brainstem", "Brainstem",
+     "#f0b45a", 30_000, 10, "deep", False),
+    ("deep_ventricles_mask.nii.gz", "ventricles", "Lateral ventricles", "Ventricles",
+     "#5aa9e6", 40_000, 10, "deep", False),
+    ("deep_thalamus_mask.nii.gz", "thalamus", "Thalamus", "Thalamus",
+     "#fa82a0", 20_000, 10, "deep", False),
+    ("deep_caudate_mask.nii.gz", "caudate", "Caudate nucleus", "Caudate",
+     "#c896fa", 20_000, 10, "deep", False),
+    ("deep_putamen_mask.nii.gz", "putamen", "Putamen", "Putamen",
+     "#ffc85a", 20_000, 10, "deep", False),
+    ("deep_pallidum_mask.nii.gz", "pallidum", "Globus pallidus", "Pallidum",
+     "#ff9650", 16_000, 10, "deep", False),
+    ("deep_hippocampus_mask.nii.gz", "hippocampus", "Hippocampus", "Hippocampus",
+     "#96dc82", 20_000, 10, "deep", False),
+    ("deep_amygdala_mask.nii.gz", "amygdala", "Amygdala", "Amygdala",
+     "#fa6e6e", 16_000, 10, "deep", False),
+    ("deep_accumbens_mask.nii.gz", "accumbens", "Nucleus accumbens", "Accumbens",
+     "#ff78c8", 12_000, 10, "deep", False),
+
+    ("arteries_aligned_mask.nii.gz", "arteries", "Arteries (carotid + vertebral)", "Arteries",
+     "#d64545", 160_000, 8, "vessels", True),
+    ("head_mask.nii.gz", "head", "Head and scalp", "Head",
      "#d9b9a4", 120_000, 14, "surface", False),
-    ("deep_cerebellum_mask.nii.gz",  "cerebellum",  "Cerebellum",
-     "#82c8eb",  60_000, 10, "deep", False),
-    ("deep_ventricles_mask.nii.gz",  "ventricles",  "Lateral ventricles",
-     "#5aa9e6",  40_000, 10, "deep", False),
-    ("deep_brainstem_mask.nii.gz",   "brainstem",   "Brainstem",
-     "#f0b45a",  30_000, 10, "deep", False),
-    ("deep_thalamus_mask.nii.gz",    "thalamus",    "Thalamus",
-     "#fa82a0",  20_000, 10, "deep", False),
-    ("deep_hippocampus_mask.nii.gz", "hippocampus", "Hippocampus",
-     "#96dc82",  20_000, 10, "deep", False),
-    ("deep_caudate_mask.nii.gz",     "caudate",     "Caudate nucleus",
-     "#c896fa",  20_000, 10, "deep", False),
-    ("deep_putamen_mask.nii.gz",     "putamen",     "Putamen",
-     "#ffc85a",  20_000, 10, "deep", False),
-    ("deep_amygdala_mask.nii.gz",    "amygdala",    "Amygdala",
-     "#fa6e6e",  16_000, 10, "deep", False),
 ]
 
 RAS_TO_GL = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]], float)
@@ -70,7 +94,7 @@ def main():
     print(f"pivot (RAS mm): {np.round(pivot, 1)}")
 
     manifest, qc = [], []
-    for fname, name, label, colour, budget, smooth, group, default_on in PARTS:
+    for fname, name, label, short, colour, budget, smooth, group, default_on in PARTS:
         path = BUILD / fname
         if not path.exists():
             print(f"  - {name}: {fname} missing, skipped")
@@ -109,7 +133,8 @@ def main():
         print(f"  {name:<12} {before:>7} -> {len(f):>7} tris  {size_kb:7.0f} KB  {vol_cm3:7.1f} cm3")
 
         manifest.append({
-            "name": name, "label": label, "file": f"models/{name}.glb",
+            "name": name, "label": label, "short": short,
+            "file": f"models/{name}.glb",
             "color": colour, "group": group, "defaultVisible": default_on,
             "triangles": int(len(f)), "volume_cm3": round(float(vol_cm3), 1),
         })

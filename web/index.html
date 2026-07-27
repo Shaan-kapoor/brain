@@ -21,7 +21,6 @@
 <div id="stage">
   <canvas id="view"></canvas>
   <div id="calloutlayer"></div>
-  <div id="pinlayer"></div>
   <div id="hovertip" hidden></div>
 </div>
 
@@ -36,7 +35,16 @@
 </header>
 
 <aside id="layers" class="panel rise" style="--d:.3s">
-  <h2>Layers</h2>
+  <h2>Views</h2>
+  <div class="presets" id="presets">
+    <button data-preset="surface">Whole brain</button>
+    <button data-preset="lobes">Lobes</button>
+    <button data-preset="deep">Deep</button>
+    <button data-preset="vessels">Vessels</button>
+    <button data-preset="all">Everything</button>
+    <button data-preset="none">Clear</button>
+  </div>
+
   <div id="layerlist"></div>
 
   <h2>Opacity</h2>
@@ -58,19 +66,7 @@
   </div>
 </aside>
 
-<aside id="inspect" class="panel rise" style="--d:.42s">
-  <h2>Selection</h2>
-  <div id="selinfo" class="empty">Click any structure to read what it does.</div>
-
-  <h2>Pins <span id="pincount"></span></h2>
-  <div class="row">
-    <button id="pinmode" class="btn">＋ place pin</button>
-    <button id="pinsave" class="btn ghost">export</button>
-  </div>
-  <div id="pinlist"></div>
-</aside>
-
-<footer id="tools" class="rise" style="--d:.54s">
+<footer id="tools" class="rise" style="--d:.5s">
   <div class="seg" id="views">
     <button data-view="L">L</button><button data-view="R">R</button>
     <button data-view="A">A</button><button data-view="P">P</button>
@@ -82,7 +78,6 @@
 </footer>
 
 <div id="orient"></div>
-<div id="disclaimer">Research / personal visualisation. Not a diagnostic image.</div>
 
 <script type="module" src="js/app.js"></script>
 </body>

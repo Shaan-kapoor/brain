@@ -1,5 +1,5 @@
 {
-  "_note": "Functional summaries shown when a structure is selected. Written from standard neuroanatomy; see README for sources and caveats.",
+  "_note": "Functional summaries shown when a structure is selected. Standard neuroanatomy; see README for caveats.",
   "hemispheres": {
     "label": "Left & right hemispheres",
     "lines": [
@@ -14,7 +14,56 @@
       "lines": [
         "The cerebral cortex — the folded outer sheet, only 2–4 mm thick, where conscious perception, planning, language and voluntary movement happen.",
         "The folding is a packing trick: it fits roughly three times more surface area into the skull than a smooth brain of the same size could hold.",
-        "It divides into four lobes — frontal for planning and movement, parietal for touch and spatial sense, temporal for hearing, language and memory, occipital for vision."
+        "Switch on the lobe layers to see how it divides up functionally."
+      ]
+    },
+    "lobe_frontal": {
+      "lines": [
+        "The largest lobe, sitting behind your forehead, and the seat of planning, decision-making, working memory and self-control.",
+        "Its rear strip is the motor cortex, which issues the commands for every voluntary movement you make. Broca's area, on the left, assembles speech.",
+        "It is also the last part of the brain to finish maturing — myelination continues into the mid-twenties, which is part of why judgement keeps improving into adulthood."
+      ]
+    },
+    "lobe_parietal": {
+      "lines": [
+        "Sits on top and behind, and builds your sense of where things are — including where your own body is.",
+        "Its front strip is the somatosensory cortex, carrying a distorted map of the body in which lips and fingertips take up far more space than the back or legs, because they have far more receptors.",
+        "It fuses touch, vision and balance into a single spatial picture. Damage on the right can cause people to ignore the left half of the world entirely."
+      ]
+    },
+    "lobe_temporal": {
+      "lines": [
+        "Runs along the side, roughly behind the ear, and handles hearing, language comprehension and recognising what you are looking at.",
+        "Wernicke's area, usually on the left, extracts meaning from speech — damage leaves fluent but nonsensical output. A patch on the underside is specialised for recognising faces.",
+        "It also wraps around the hippocampus and amygdala, which is why this lobe is so central to memory and emotion."
+      ]
+    },
+    "lobe_occipital": {
+      "lines": [
+        "The lobe at the very back of the head, and almost entirely dedicated to vision.",
+        "Signals arrive from the eyes and are decomposed into edges, orientations, motion and colour before being reassembled into recognisable objects further forward.",
+        "Because it is vision and little else, damage here causes blindness even though the eyes themselves work perfectly."
+      ]
+    },
+    "lobe_cingulate": {
+      "lines": [
+        "A collar of cortex curving around the corpus callosum, deep between the two hemispheres.",
+        "It monitors conflict and error — the flicker of \"that's wrong\" when you catch a mistake is largely cingulate activity — and helps regulate emotion and effort.",
+        "Its front section also carries the unpleasantness of pain, as distinct from the raw sensation, which the parietal lobe handles."
+      ]
+    },
+    "lobe_insula": {
+      "lines": [
+        "A hidden island of cortex folded deep inside the lateral sulcus, covered over by the frontal, parietal and temporal lobes.",
+        "It handles interoception — your sense of your own internal state. Hunger, nausea, a racing heart, needing the bathroom, the flush of embarrassment all register here.",
+        "It also processes taste and disgust, and is consistently active when people feel empathy for someone else's pain."
+      ]
+    },
+    "white_matter": {
+      "lines": [
+        "The brain's wiring: bundles of myelinated axons carrying signals between regions, beneath the grey cortex.",
+        "It is white because of myelin, a fatty sheath that insulates each fibre and speeds transmission up to roughly a hundredfold.",
+        "It makes up about half the brain's volume. The largest bundle, the corpus callosum, is the bridge between the two hemispheres."
       ]
     },
     "cerebellum": {
@@ -71,6 +120,20 @@
         "A basal-ganglia structure sitting just outside the thalamus, working closely with the caudate.",
         "It regulates movement — selecting which motor programme to run and suppressing the ones you do not want.",
         "It is a key site in learning motor sequences, and is among the regions affected in Parkinson's disease."
+      ]
+    },
+    "pallidum": {
+      "lines": [
+        "The globus pallidus, a pale wedge of tissue that forms the main output stage of the basal ganglia.",
+        "Its job is largely inhibitory: it holds unwanted movements in check, and releases that brake when a movement is actually wanted.",
+        "It is a standard target for deep brain stimulation in Parkinson's disease and dystonia, where that braking system misfires."
+      ]
+    },
+    "accumbens": {
+      "lines": [
+        "A small nucleus where the caudate and putamen meet, sitting at the heart of the brain's reward circuitry.",
+        "Dopamine signals arriving here track how much better or worse an outcome was than expected — the machinery of wanting, motivation and pleasure.",
+        "It is central to how habits become compulsions, and is heavily implicated in addiction."
       ]
     },
     "arteries": {

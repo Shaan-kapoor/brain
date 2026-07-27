@@ -5,6 +5,7 @@
     {
       "name": "brain",
       "label": "Brain surface",
+      "short": "Cortex surface",
       "file": "models/brain.glb",
       "color": "#e8d3c6",
       "group": "brain",
@@ -13,8 +14,196 @@
       "volume_cm3": 1173.0
     },
     {
+      "name": "lobe_frontal",
+      "label": "Frontal lobe",
+      "short": "Frontal",
+      "file": "models/lobe_frontal.glb",
+      "color": "#68a0ff",
+      "group": "cortex",
+      "defaultVisible": false,
+      "triangles": 54998,
+      "volume_cm3": 229.1
+    },
+    {
+      "name": "lobe_parietal",
+      "label": "Parietal lobe",
+      "short": "Parietal",
+      "file": "models/lobe_parietal.glb",
+      "color": "#6edcbe",
+      "group": "cortex",
+      "defaultVisible": false,
+      "triangles": 54998,
+      "volume_cm3": 136.0
+    },
+    {
+      "name": "lobe_temporal",
+      "label": "Temporal lobe",
+      "short": "Temporal",
+      "file": "models/lobe_temporal.glb",
+      "color": "#ffaa64",
+      "group": "cortex",
+      "defaultVisible": false,
+      "triangles": 55000,
+      "volume_cm3": 121.6
+    },
+    {
+      "name": "lobe_occipital",
+      "label": "Occipital lobe",
+      "short": "Occipital",
+      "file": "models/lobe_occipital.glb",
+      "color": "#d78cfa",
+      "group": "cortex",
+      "defaultVisible": false,
+      "triangles": 55000,
+      "volume_cm3": 130.3
+    },
+    {
+      "name": "lobe_cingulate",
+      "label": "Cingulate cortex",
+      "short": "Cingulate",
+      "file": "models/lobe_cingulate.glb",
+      "color": "#fa8296",
+      "group": "cortex",
+      "defaultVisible": false,
+      "triangles": 40000,
+      "volume_cm3": 40.3
+    },
+    {
+      "name": "lobe_insula",
+      "label": "Insula",
+      "short": "Insula",
+      "file": "models/lobe_insula.glb",
+      "color": "#fad26e",
+      "group": "cortex",
+      "defaultVisible": false,
+      "triangles": 29132,
+      "volume_cm3": 13.2
+    },
+    {
+      "name": "white_matter",
+      "label": "Cerebral white matter",
+      "short": "White matter",
+      "file": "models/white_matter.glb",
+      "color": "#e2e2e8",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 70000,
+      "volume_cm3": 295.4
+    },
+    {
+      "name": "cerebellum",
+      "label": "Cerebellum",
+      "short": "Cerebellum",
+      "file": "models/cerebellum.glb",
+      "color": "#82c8eb",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 60000,
+      "volume_cm3": 105.9
+    },
+    {
+      "name": "brainstem",
+      "label": "Brainstem",
+      "short": "Brainstem",
+      "file": "models/brainstem.glb",
+      "color": "#f0b45a",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 26360,
+      "volume_cm3": 27.9
+    },
+    {
+      "name": "ventricles",
+      "label": "Lateral ventricles",
+      "short": "Ventricles",
+      "file": "models/ventricles.glb",
+      "color": "#5aa9e6",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 28404,
+      "volume_cm3": 11.1
+    },
+    {
+      "name": "thalamus",
+      "label": "Thalamus",
+      "short": "Thalamus",
+      "file": "models/thalamus.glb",
+      "color": "#fa82a0",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 17852,
+      "volume_cm3": 14.3
+    },
+    {
+      "name": "caudate",
+      "label": "Caudate nucleus",
+      "short": "Caudate",
+      "file": "models/caudate.glb",
+      "color": "#c896fa",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 14544,
+      "volume_cm3": 6.1
+    },
+    {
+      "name": "putamen",
+      "label": "Putamen",
+      "short": "Putamen",
+      "file": "models/putamen.glb",
+      "color": "#ffc85a",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 17872,
+      "volume_cm3": 10.0
+    },
+    {
+      "name": "pallidum",
+      "label": "Globus pallidus",
+      "short": "Pallidum",
+      "file": "models/pallidum.glb",
+      "color": "#ff9650",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 7804,
+      "volume_cm3": 3.5
+    },
+    {
+      "name": "hippocampus",
+      "label": "Hippocampus",
+      "short": "Hippocampus",
+      "file": "models/hippocampus.glb",
+      "color": "#96dc82",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 19368,
+      "volume_cm3": 9.3
+    },
+    {
+      "name": "amygdala",
+      "label": "Amygdala",
+      "short": "Amygdala",
+      "file": "models/amygdala.glb",
+      "color": "#fa6e6e",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 9888,
+      "volume_cm3": 4.8
+    },
+    {
+      "name": "accumbens",
+      "label": "Nucleus accumbens",
+      "short": "Accumbens",
+      "file": "models/accumbens.glb",
+      "color": "#ff78c8",
+      "group": "deep",
+      "defaultVisible": false,
+      "triangles": 4036,
+      "volume_cm3": 1.3
+    },
+    {
       "name": "arteries",
       "label": "Arteries (carotid + vertebral)",
+      "short": "Arteries",
       "file": "models/arteries.glb",
       "color": "#d64545",
       "group": "vessels",
@@ -25,92 +214,13 @@
     {
       "name": "head",
       "label": "Head and scalp",
+      "short": "Head",
       "file": "models/head.glb",
       "color": "#d9b9a4",
       "group": "surface",
       "defaultVisible": false,
       "triangles": 119998,
       "volume_cm3": 4004.6
-    },
-    {
-      "name": "cerebellum",
-      "label": "Cerebellum",
-      "file": "models/cerebellum.glb",
-      "color": "#82c8eb",
-      "group": "deep",
-      "defaultVisible": false,
-      "triangles": 60000,
-      "volume_cm3": 105.7
-    },
-    {
-      "name": "ventricles",
-      "label": "Lateral ventricles",
-      "file": "models/ventricles.glb",
-      "color": "#5aa9e6",
-      "group": "deep",
-      "defaultVisible": false,
-      "triangles": 28504,
-      "volume_cm3": 11.1
-    },
-    {
-      "name": "brainstem",
-      "label": "Brainstem",
-      "file": "models/brainstem.glb",
-      "color": "#f0b45a",
-      "group": "deep",
-      "defaultVisible": false,
-      "triangles": 26248,
-      "volume_cm3": 27.7
-    },
-    {
-      "name": "thalamus",
-      "label": "Thalamus",
-      "file": "models/thalamus.glb",
-      "color": "#fa82a0",
-      "group": "deep",
-      "defaultVisible": false,
-      "triangles": 17772,
-      "volume_cm3": 14.2
-    },
-    {
-      "name": "hippocampus",
-      "label": "Hippocampus",
-      "file": "models/hippocampus.glb",
-      "color": "#96dc82",
-      "group": "deep",
-      "defaultVisible": false,
-      "triangles": 19288,
-      "volume_cm3": 9.2
-    },
-    {
-      "name": "caudate",
-      "label": "Caudate nucleus",
-      "file": "models/caudate.glb",
-      "color": "#c896fa",
-      "group": "deep",
-      "defaultVisible": false,
-      "triangles": 14504,
-      "volume_cm3": 6.1
-    },
-    {
-      "name": "putamen",
-      "label": "Putamen",
-      "file": "models/putamen.glb",
-      "color": "#ffc85a",
-      "group": "deep",
-      "defaultVisible": false,
-      "triangles": 17712,
-      "volume_cm3": 9.9
-    },
-    {
-      "name": "amygdala",
-      "label": "Amygdala",
-      "file": "models/amygdala.glb",
-      "color": "#fa6e6e",
-      "group": "deep",
-      "defaultVisible": false,
-      "triangles": 9840,
-      "volume_cm3": 4.8
     }
   ]
 }
