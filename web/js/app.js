@@ -7,6 +7,14 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
+
+// Brute-force raycasting tested every triangle of every visible mesh on every
+// pointermove - 1.3 M triangles, ~92 ms per event. A BVH turns that into a
+// tree descent costing well under a millisecond.
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 const $ = (s) => document.querySelector(s);
 const stage = $('#stage');
@@ -97,17 +105,31 @@ const SURFACE = {
 
 function makeMaterial(meta) {
   const s = SURFACE[meta.group] || SURFACE.deep;
-  return new THREE.MeshPhysicalMaterial({
+  const common = {
     color: new THREE.Color(meta.color),
     vertexColors: true,              // baked AO lives in COLOR_0
     roughness: s.roughness, metalness: 0.0,
+    envMapIntensity: s.env,
+    transparent: false, opacity: 1,
+    // Must stay DoubleSide. Backface culling would be free performance on a
+    // consistently wound mesh, but these come from marching cubes on a
+    // non-watertight mask and their triangle winding is mixed - culling
+    // punched visible holes straight through the cortex. Do not "optimise"
+    // this to FrontSide without first making the meshes watertight and
+    // consistently oriented in the pipeline.
+    side: THREE.DoubleSide,
+    clippingPlanes: [],
+  };
+  // Clearcoat and sheen are the expensive part of MeshPhysicalMaterial. The
+  // scalp is a large, nearly-transparent shell that covers the whole screen -
+  // paying for a second specular lobe there is what wrecked the close-up
+  // framerate, and at 28% opacity it is not visible anyway.
+  if (meta.group === 'surface') return new THREE.MeshStandardMaterial(common);
+  return new THREE.MeshPhysicalMaterial({
+    ...common,
     clearcoat: s.clearcoat, clearcoatRoughness: s.clearcoatRoughness,
     sheen: s.sheen, sheenRoughness: s.sheenRoughness,
     sheenColor: new THREE.Color(s.sheenColor),
-    envMapIntensity: s.env,
-    transparent: true, opacity: 1,
-    side: THREE.DoubleSide,
-    clippingPlanes: [],
   });
 }
 
@@ -127,6 +149,7 @@ async function boot() {
         const src = gltf.scene.getObjectByProperty('isMesh', true);
         const geom = src.geometry;
         if (!geom.attributes.normal) geom.computeVertexNormals();
+        geom.computeBoundsTree();
         const material = makeMaterial(meta);
         const mesh = new THREE.Mesh(geom, material);
         mesh.name = meta.name;
@@ -214,6 +237,7 @@ function buildLayerUI() {
       row.addEventListener('click', () => {
         rec.mesh.visible = !rec.mesh.visible;
         row.classList.toggle('off', !rec.mesh.visible);
+        invalidatePickList();
         if (!rec.mesh.visible && selected?.name === meta.name) select(null);
         autoTransparency();
       });
@@ -236,9 +260,33 @@ function applyOpacity(scale = 1) {
     if (meta.name === 'brain') o = b;
     else if (meta.name === 'head') o = h;
     material.opacity = o * scale;
-    material.depthWrite = material.opacity > 0.97;
+    // Flagging a material transparent puts it in the sorted blend pass and
+    // gives up early-Z. With eleven nested shells that is enormous overdraw,
+    // so only opt in when the surface is actually see-through.
+    const wantTransparent = material.opacity < 0.995;
+    if (material.transparent !== wantTransparent) {
+      material.transparent = wantTransparent;
+      material.needsUpdate = true;
+    }
+    material.depthWrite = !wantTransparent;
+
+    // A clearcoat highlight and a sheen lobe are invisible through a surface
+    // you can already see straight through, but they still cost a second
+    // specular evaluation per fragment. Drop them once the shell goes faint.
+    if (material.isMeshPhysicalMaterial) {
+      const s = SURFACE[meta.group] || SURFACE.deep;
+      const faint = material.opacity < 0.5;
+      const cc = faint ? 0 : s.clearcoat;
+      const sh = faint ? 0 : s.sheen;
+      if ((material.clearcoat > 0) !== (cc > 0) || (material.sheen > 0) !== (sh > 0)) {
+        material.needsUpdate = true;
+      }
+      material.clearcoat = cc;
+      material.sheen = sh;
+    }
   }
 }
+
 $('#opbrain').addEventListener('input', () => applyOpacity());
 $('#ophead').addEventListener('input', () => applyOpacity());
 
@@ -256,16 +304,31 @@ const ray = new THREE.Raycaster();
 const ptr = new THREE.Vector2();
 const tip = $('#hovertip');
 
+// Cached list of pickable meshes; visibility changes invalidate it.
+let pickList = null;
+function invalidatePickList() { pickList = null; }
+function pickable() {
+  if (!pickList) pickList = [...parts.values()].filter((p) => p.mesh.visible).map((p) => p.mesh);
+  return pickList;
+}
+
 function pick(ev) {
   const r = renderer.domElement.getBoundingClientRect();
   ptr.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
   ptr.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
   ray.setFromCamera(ptr, camera);
-  const meshes = [...parts.values()].filter((p) => p.mesh.visible).map((p) => p.mesh);
-  return ray.intersectObjects(meshes, false)[0] || null;
+  return ray.intersectObjects(pickable(), false)[0] || null;
 }
 
-renderer.domElement.addEventListener('pointermove', (ev) => {
+// Pointermove fires far faster than the display refreshes, so the raycast is
+// deferred and coalesced to one per frame - and skipped entirely mid-drag,
+// where the result would be thrown away anyway.
+let hoverEv = null, dragging = false;
+renderer.domElement.addEventListener('pointermove', (ev) => { hoverEv = ev; });
+
+function processHover() {
+  if (!hoverEv || dragging) return;
+  const ev = hoverEv; hoverEv = null;
   const hit = pick(ev);
   if (hit) {
     tip.hidden = false;
@@ -277,11 +340,14 @@ renderer.domElement.addEventListener('pointermove', (ev) => {
     tip.hidden = true;
     renderer.domElement.style.cursor = pinMode ? 'crosshair' : 'grab';
   }
-});
+}
 
 let downAt = null;
-renderer.domElement.addEventListener('pointerdown', (e) => { downAt = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  downAt = [e.clientX, e.clientY]; dragging = true; tip.hidden = true;
+});
 renderer.domElement.addEventListener('pointerup', (ev) => {
+  dragging = false;
   if (!downAt) return;
   const moved = Math.hypot(ev.clientX - downAt[0], ev.clientY - downAt[1]);
   downAt = null;
@@ -447,6 +513,7 @@ function renderPinList() {
     lab.textContent = pin.label;
     lab.dataset.id = pin.id;
     $('#pinlayer').appendChild(lab);
+    m.userData.el = lab;                 // cached; avoids a DOM query per frame
 
     const row = document.createElement('div');
     row.className = 'pin-row';
@@ -481,9 +548,10 @@ $('#pinsave').addEventListener('click', () => {
 });
 
 function updatePinLabels() {
+  if (!pinGroup.children.length) return;
   const w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight;
   pinGroup.children.forEach((m) => {
-    const el = $('#pinlayer').querySelector(`[data-id="${m.userData.pin.id}"]`);
+    const el = m.userData.el;
     if (!el) return;
     tmpV.copy(m.position).project(camera);
     el.style.display = tmpV.z > 1 ? 'none' : '';
@@ -538,10 +606,11 @@ const gnomonEls = GNOMON.map(([t]) => {
   const s = document.createElement('span'); s.textContent = t;
   $('#orient').appendChild(s); return s;
 });
+const gQ = new THREE.Quaternion(), gV = new THREE.Vector3();
 function updateGnomon() {
-  const q = camera.quaternion.clone().invert();
+  const q = gQ.copy(camera.quaternion).invert();
   GNOMON.forEach(([, x, y, z], i) => {
-    const v = new THREE.Vector3(x, y, z).applyQuaternion(q);
+    const v = gV.set(x, y, z).applyQuaternion(q);
     const el = gnomonEls[i];
     el.style.left = `${44 + v.x * 32 - 5}px`;
     el.style.top = `${44 - v.y * 32 - 5}px`;
@@ -576,11 +645,37 @@ function resize() {
 addEventListener('resize', resize);
 resize();
 
+/* --------------------------------------------------- adaptive resolution */
+// Last line of defence for the fill-rate-bound close-up case. This scales the
+// framebuffer only - geometry, materials and the meshes themselves are never
+// touched - and it only engages when frames are actually being missed.
+const BASE_PR = Math.min(devicePixelRatio, 2);
+const STEPS = [1, 0.85, 0.72];
+let prStep = 0, frameAvg = 16.7, lastPrChange = 0, prevFrame = performance.now();
+
+function adaptResolution(now) {
+  const dt = now - prevFrame; prevFrame = now;
+  if (dt > 200) return;                       // tab was backgrounded
+  frameAvg += (dt - frameAvg) * 0.06;         // slow EMA, ignores single spikes
+  if (now - lastPrChange < 1200) return;
+  let next = prStep;
+  if (frameAvg > 24 && prStep < STEPS.length - 1) next = prStep + 1;
+  else if (frameAvg < 14 && prStep > 0) next = prStep - 1;
+  if (next !== prStep) {
+    prStep = next;
+    lastPrChange = now;
+    renderer.setPixelRatio(BASE_PR * STEPS[prStep]);
+    frameAvg = 16.7;
+  }
+}
+
 renderer.setAnimationLoop(() => {
   const now = performance.now();
+  adaptResolution(now);
   applyIntro(now);
   controls.autoRotate = !intro && now - lastInput > IDLE_MS && !pinMode;
   controls.update();
+  processHover();
   updateGnomon();
   updatePinLabels();
   updateCallout();
@@ -590,5 +685,9 @@ renderer.setAnimationLoop(() => {
 addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { setPinMode(false); select(null); }
 });
+
+// Handle for profiling and debugging from the console / headless benchmarks.
+window.__viewer = { renderer, scene, camera, controls, parts, THREE,
+                    stats: () => ({ frameAvg, resScale: STEPS[prStep] }) };
 
 boot();

@@ -64,6 +64,47 @@ to drop a labelled marker; `export` downloads `pins.json`, which you can drop
 back into `web/` to make the pins permanent. The cross-section buttons cut a
 sagittal, axial or coronal plane through everything at once.
 
+### Performance
+
+`npm run bench` drives the viewer with a real GPU and reports frame times,
+draw calls and picking cost. Measured on an AMD Radeon integrated GPU at
+1600×950:
+
+| Scene | Before | After |
+|---|---|---|
+| Brain only | 59.9 fps | 59.9 fps (vsync cap) |
+| Default (brain + arteries) | 59.9 fps | 59.9 fps (vsync cap) |
+| Everything on | 28.6 fps | **51.8 fps** |
+| Everything, close-up | 14.5 fps | **30.4 fps** |
+| Raycast per pick | 43.4 ms | **0.214 ms** |
+
+Not one triangle was removed. The wins came from:
+
+- **A BVH for picking** (`three-mesh-bvh`). Hover raycasting was testing every
+  triangle of every visible mesh on every `pointermove` — 1.3 M triangles per
+  event. Raycasts are also now coalesced to one per frame and skipped entirely
+  mid-drag.
+- **Only marking materials `transparent` when they actually are.** Everything
+  was permanently in the sorted blend pass, giving up early-Z across eleven
+  nested shells. Opaque parts now render opaque.
+- **Dropping clearcoat and sheen once a shell goes below 50% opacity.** A
+  second specular lobe you cannot see through a 22%-opaque surface is pure
+  cost; and `MeshStandardMaterial` for the scalp, which is a full-screen
+  near-transparent shell.
+- **Adaptive resolution.** Framebuffer scale steps down to 0.72 when frame
+  time is sustained above 24 ms and recovers when it drops. Pixels only —
+  geometry and materials are never touched.
+
+**One optimisation was tried and reverted.** Switching to `FrontSide` to let
+the GPU cull backfaces looked like free performance and measured well (60 fps
+with everything on, 42 fps close-up). It also punched visible holes straight
+through the cortex: these meshes come from marching cubes on a non-watertight
+mask, their triangle winding is mixed, and `trimesh.fix_normals()` cannot
+orient a mesh that is not watertight. `side` is pinned to `DoubleSide` with a
+comment saying so. Making the meshes watertight and consistently oriented in
+the pipeline would unlock it properly — that is the real fix, not a renderer
+flag.
+
 ### About the descriptions
 
 The functional summaries in `web/anatomy.json` are standard textbook
