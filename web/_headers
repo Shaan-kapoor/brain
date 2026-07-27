@@ -1,0 +1,34 @@
+# Cloudflare Pages header rules. Must live in the build output directory.
+#
+# Filenames are not content-hashed, so cache lifetimes are deliberately
+# finite: a rebuilt model would otherwise keep serving stale geometry until
+# the TTL expired. index.html always revalidates so a redeploy is picked up
+# immediately, and it is the file that references everything else.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# Geometry is the bulk of the payload and changes only on a rebuild.
+/models/*
+  Cache-Control: public, max-age=604800
+
+# Vendored three.js is pinned to a version and effectively immutable.
+/vendor/*
+  Cache-Control: public, max-age=604800
+
+/css/*
+  Cache-Control: public, max-age=86400
+
+/js/*
+  Cache-Control: public, max-age=86400
+
+# Small, and they decide what the viewer loads, so keep them fresh.
+/manifest.json
+  Cache-Control: public, max-age=3600
+
+/anatomy.json
+  Cache-Control: public, max-age=3600
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate

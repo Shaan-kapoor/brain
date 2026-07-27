@@ -475,6 +475,25 @@ It has to be served over http. ES modules and `fetch()` do not work from
 **Controls:** drag to orbit, scroll to zoom, click a structure to read about
 it, double-click to focus, `E` toggles Explore, `Esc` clears.
 
+### Deploying
+
+It is a folder of static files, so any static host works. There is no server
+code, no build step and no API.
+
+Cloudflare Pages: connect the repo, leave the build command empty, set the
+build output directory to `web`. `web/_headers` sets the cache lifetimes.
+
+The only thing worth checking after a deploy is whether the host compresses
+the geometry. GLB gzips by about 40% (25.3 MB down to 15.3 MB across the
+twenty models), but `model/gltf-binary` is not on every CDN's compressible
+list, because it is usually assumed to be Draco-compressed already:
+
+```bash
+curl -sI -H 'Accept-Encoding: gzip, br' https://<host>/models/brain.glb | grep -i content-encoding
+```
+
+No `content-encoding` header back means that 40% is being left on the table.
+
 ### Rebuilding from the scan
 
 The DICOM is deliberately not in this repo. Point the scripts at a folder of
