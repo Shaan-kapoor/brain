@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png">
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
 <link rel="preload" href="../fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="docs.css">
+<link rel="stylesheet" href="docs.css?v=07d2b538">
 </head>
 <body>
 
@@ -22,9 +22,10 @@
 
 <div class="hero">
   <h1>How I built a 3D model of my brain</h1>
-  <p class="lede">I had an MRI in October 2023. Two years later I found the disc
-  in a drawer, got curious about whether there was a real 3D model hiding inside
-  those files, and went looking. <strong>There was.</strong></p>
+  <p class="lede">I had an MRI in October 2023 and put the disc in a drawer. Two
+  years later I went back to it assuming the 3D model was already in there and I
+  just needed the right software. It is not. A DICOM holds flat grey slices and
+  nothing else. <strong>Every fold you can rotate had to be generated.</strong></p>
 </div>
 
 <article>
@@ -100,7 +101,11 @@ sitting there the whole time.</p>
 suppresses everything that is not moving, so it contains blood and almost
 nothing else.</p>
 
-<h2 id="extract">Step 2: Getting a brain out of it</h2>
+<h2 id="extract">Step 2: Generating a brain out of grey slices</h2>
+
+<p>Nothing three-dimensional exists in the source files. What follows computes a
+surface into existence: a threshold decides which voxels count as brain, and
+marching cubes wraps a skin around them.</p>
 
 <p>I assumed I would need a neural network for brain extraction and started
 looking at which one to install. I did not need one, because of a lucky quirk
