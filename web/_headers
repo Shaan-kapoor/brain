@@ -17,11 +17,17 @@
 /vendor/*
   Cache-Control: public, max-age=604800
 
+# These two MUST revalidate. They are coupled to the DOM in index.html, which
+# itself always revalidates, so caching them for any length of time lets a
+# returning visitor pair fresh HTML with stale JavaScript. That is exactly how
+# removing one button produced "cannot read properties of null" for anyone who
+# had visited before. They are ~30 KB combined, so a conditional request
+# costing a 304 is a bargain next to a broken page.
 /css/*
-  Cache-Control: public, max-age=86400
+  Cache-Control: public, max-age=0, must-revalidate
 
 /js/*
-  Cache-Control: public, max-age=86400
+  Cache-Control: public, max-age=0, must-revalidate
 
 # Small, and they decide what the viewer loads, so keep them fresh.
 /manifest.json
