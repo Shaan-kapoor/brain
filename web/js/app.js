@@ -88,7 +88,7 @@ const wanted = new Set();         // names that *should* be visible
 let manifest = null, anatomy = null;
 let selected = null, hoveredChip = null, brainVolume = 1;
 let baseDist = 400;
-let queue = [], loading = 0, remaining = 0;
+let queue = [], loading = 0;
 
 const clipPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
 let clipAxis = 'off', clipFlip = false;
@@ -156,35 +156,48 @@ function loadPart(meta) {
   });
 }
 
-/* Background loading. The whole set is 25 MB and only two parts are on screen
- * at the start, so everything else streams in afterwards while the model is
- * already interactive. Clicking a chip that has not arrived yet jumps it to
- * the front of the queue rather than making you wait for the ones before it. */
+/* Loading strategy differs by device on purpose.
+ *
+ * On desktop the remaining parts stream in behind you, so everything is ready
+ * by the time you go looking for it. On a phone that is the wrong trade: all
+ * twenty meshes resident at once is a lot of GPU memory, and mobile browsers
+ * respond to memory pressure by killing the tab. There, parts load only when
+ * you actually ask for one. */
 const CONCURRENCY = 3;
+const unloaded = new Map();      // name -> meta, fetched only when needed
 
 function pump() {
   while (loading < CONCURRENCY && queue.length) {
     const meta = queue.shift();
+    unloaded.delete(meta.name);
     loading++;
     loadPart(meta).then(() => {
-      loading--; remaining--;
+      loading--;
       applyOpacity(); syncChips(); updateLoadHint();
       pump();
     });
   }
 }
 
-function prioritise(name) {
-  const i = queue.findIndex((m) => m.name === name);
-  if (i > 0) queue.unshift(queue.splice(i, 1)[0]);
+// Asking for a part that has not arrived jumps it straight to the front,
+// rather than making you wait behind everything queued ahead of it.
+function ensureLoaded(name) {
+  if (parts.has(name)) return;
+  const meta = unloaded.get(name);
+  if (!meta) return;
+  unloaded.delete(name);
+  queue = queue.filter((m) => m.name !== name);
+  queue.unshift(meta);
+  updateLoadHint();
   pump();
 }
 
 function updateLoadHint() {
   const el = $('#loadhint');
   if (!el) return;
-  el.textContent = remaining > 0 ? `loading ${remaining} more` : '';
-  el.classList.toggle('on', remaining > 0);
+  const busy = queue.length + loading;
+  el.textContent = busy > 0 ? `loading ${busy} more` : '';
+  el.classList.toggle('on', busy > 0);
 }
 
 async function boot() {
@@ -215,11 +228,13 @@ async function boot() {
   setTimeout(() => loadEl.remove(), 800);
   startIntro();
 
-  // Phase 2: everything else, in the background
-  queue = rest.slice();
-  remaining = queue.length;
+  // Phase 2: the rest. Preloaded on desktop, on demand on mobile.
+  for (const m of rest) unloaded.set(m.name, m);
+  if (!isMobile()) {
+    queue = rest.slice();
+    pump();
+  }
   updateLoadHint();
-  pump();
 }
 
 function frameAll() {
@@ -402,13 +417,13 @@ function applyWanted() {
 }
 
 function setVisible(name, on) {
-  if (on) { wanted.add(name); prioritise(name); } else { wanted.delete(name); }
+  if (on) { wanted.add(name); ensureLoaded(name); } else { wanted.delete(name); }
   if (!on && selected?.name === name) select(null);
   applyWanted();
 }
 
 function solo(name) {
-  wanted.clear(); wanted.add(name); prioritise(name);
+  wanted.clear(); wanted.add(name); ensureLoaded(name);
   applyWanted();
 }
 
@@ -416,7 +431,7 @@ function applyPreset(key) {
   const fn = PRESETS[key];
   if (!fn) return;
   wanted.clear();
-  for (const meta of manifest.parts) if (fn(meta)) { wanted.add(meta.name); prioritise(meta.name); }
+  for (const meta of manifest.parts) if (fn(meta)) { wanted.add(meta.name); ensureLoaded(meta.name); }
   if (key === 'deep' || key === 'all') $('#opbrain').value = 22;
   if (key === 'surface' || key === 'lobes') $('#opbrain').value = 100;
   applyWanted(); applyOpacity(); select(null);

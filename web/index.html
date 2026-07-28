@@ -38,6 +38,51 @@
   <span>reconstructing</span>
 </div>
 
+<!-- Classic (non-module) script on purpose. If the browser cannot parse an
+     import map, the module below never executes at all, so any diagnostics
+     living inside it would never run either. This has to be able to report
+     that case from the outside. -->
+<script>
+(function () {
+  var boot = { webgl: false, importmap: false, err: null };
+  try {
+    boot.importmap = !!(HTMLScriptElement.supports && HTMLScriptElement.supports('importmap'));
+  } catch (e) { boot.importmap = false; }
+  try {
+    var c = document.createElement('canvas');
+    boot.webgl = !!(c.getContext('webgl2') || c.getContext('webgl'));
+  } catch (e) { boot.webgl = false; }
+  window.__boot = boot;
+
+  window.addEventListener('error', function (e) {
+    if (!boot.err) boot.err = (e.message || 'load error') +
+      (e.filename ? ' in ' + String(e.filename).split('/').pop() : '');
+  }, true);
+  window.addEventListener('unhandledrejection', function (e) {
+    if (!boot.err) boot.err = 'promise: ' + ((e.reason && e.reason.message) || e.reason);
+  });
+
+  setTimeout(function () {
+    if (window.__viewer) return;                 // it started fine
+    var msg;
+    if (!boot.webgl) {
+      msg = 'This browser could not start WebGL, which the 3D view needs. ' +
+            'On iOS check Settings &rsaquo; Safari &rsaquo; Advanced and make sure WebGL is on, ' +
+            'or try Chrome.';
+    } else if (!boot.importmap) {
+      msg = 'This browser is a little too old to run the viewer. It needs iOS 16.4 or newer, ' +
+            'or a recent Chrome, Firefox or Edge.';
+    } else if (boot.err) {
+      msg = 'Something failed while loading:<br><code>' + boot.err + '</code>';
+    } else {
+      msg = 'Still downloading. The model is about 9 MB, so this can take a while on a slow connection.';
+    }
+    var el = document.getElementById('loader');
+    if (el) el.innerHTML = '<div class="failmsg">' + msg + '</div>';
+  }, 25000);
+})();
+</script>
+
 <header id="titlebar">
   <h1>SHAAN'S BRAIN</h1>
   <p id="subtitle">tap anything to learn about it</p>
