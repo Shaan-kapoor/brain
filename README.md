@@ -25,12 +25,6 @@
 |:--:|:--:|:--:|:--:|:--:|
 | DICOM files in | structures out | of the brain named | measured volume | with everything on |
 
-<br><br>
-
-<img src="web/docs/ui/before-after.png" width="900" alt="Left: raw greyscale MRI slices. Right: the finished, colour coded 3D model">
-
-<sub>Everything on the left is what the scan actually hands you. Everything on the right had to be built.</sub>
-
 </div>
 
 ---
