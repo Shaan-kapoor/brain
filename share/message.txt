@@ -1,0 +1,49 @@
+Send with: ../web/docs/gif/before-after.gif
+       or: ../web/docs/ui/before-after.png
+       or: whatsapp-brain.png
+
+Version A is 994 characters, inside the 1024 WhatsApp caption limit, so it
+sends as one message attached to the image rather than two.
+
+
+========================= VERSION A (main) =========================
+
+*I put a 3D model of my own brain online. It's at brain.aihq.in*
+
+You can spin it around, tap any part to read what that part does, peel it back to the lobes or the deep structures or just the arteries, and cut a cross section through it at any angle. It works on a phone.
+
+The brain in it is mine. I had an MRI done in 2023, the disc sat in a drawer for two years, and I opened it out of curiosity.
+
+An MRI gives you a stack of flat photographs taken a fraction of a millimetre apart, 2,430 of them in my case. Getting from that to a shape you can hold means deciding, at every point in the stack, whether it's brain or bone or vessel or nothing at all. Where the scan is bright or blurry or ambiguous, that call is yours and easy to get wrong. Most of my time went there.
+
+Came out at 1,173 cm³ of brain in 20 named structures, running at 60fps in a browser.
+
+Wrote up how I did it at brain.aihq.in/docs, and the code is at github.com/Shaan-kapoor/brain
+
+Would be glad to hear what you think.
+
+
+========================= VERSION B (shorter) =========================
+
+*I put a 3D model of my own brain online: brain.aihq.in*
+
+Spin it around, tap any part to read what it does, peel it back to the lobes or the arteries, or cut a cross section through it. Works on a phone.
+
+The brain in it is mine, from an MRI I had done in 2023. A scan gives you a stack of flat photographs a fraction of a millimetre apart, 2,430 in my case, and getting from that to a shape you can hold means deciding at every point whether it's brain or bone or vessel or nothing. That part took me a while.
+
+Came out at 1,173 cm³, split into 20 named structures, running at 60fps in a browser.
+
+Written up at brain.aihq.in/docs, code at github.com/Shaan-kapoor/brain
+
+Would be glad to hear what you think.
+
+
+========================= VERSION C (quick) =========================
+
+*I put a 3D model of my own brain online: brain.aihq.in*
+
+Built from an MRI I had done in 2023. Spin it around, tap any part to read what it does, or cut a cross section through it. Works on a phone.
+
+It came out at 1,173 cm³ and 20 named structures.
+
+Would be glad to hear what you think.
